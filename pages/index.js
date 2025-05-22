@@ -25,7 +25,7 @@ export default function Home() {
       </Head>
       <div>
         <p>Adventures</p>
-        <Link href="/neighborhood">Neighborhood</Link>
+        <span>Neighborhood (<Link href="/neighborhood">Leaderboard</Link>) (<Link href="/neighborhood/globe">Globe</Link>)</span>
       </div>
     </>
   );

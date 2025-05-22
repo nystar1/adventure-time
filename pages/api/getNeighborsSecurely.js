@@ -21,7 +21,8 @@ export default async function handler(req, res) {
           "totalTimeHackatimeHours",
           "totalTimeStopwatchHours",
           "totalCheckedTime",
-          "Full Name"
+          "Full Name",
+          "airport"
         ],
         filterByFormula: "totalTimeHackatimeHours >= 1.0",
         sort: [{ field: "totalTimeHackatimeHours", direction: "desc" }]
@@ -38,7 +39,8 @@ export default async function handler(req, res) {
       totalTimeHackatimeHours: Math.round(record.fields.totalTimeHackatimeHours || 0),
       totalTimeStopwatchHours: record.fields.totalTimeStopwatchHours || 0,
       fullName: record.fields["Full Name"] || null,
-      totalCheckedTime: record.fields.totalCheckedTime || 0
+      totalCheckedTime: record.fields.totalCheckedTime || 0,
+      airport: record.fields.airport
     }));
 
     return res.status(200).json({ neighbors });

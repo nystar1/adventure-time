@@ -11,6 +11,7 @@ export default function ContributorPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [appHours, setAppHours] = useState({});
+  const [numberOfWeightedGrants, setNumberOfWeightedGrants] = useState(0);
 
   useEffect(() => {
     const fetchNeighborDetails = async () => {
@@ -23,6 +24,7 @@ export default function ContributorPage() {
         }
         const data = await response.json();
         setData(data);
+        setNumberOfWeightedGrants((parseFloat(data.neighbor?.grantedHours) || 0) / 10);
       } catch (err) {
         setError('Failed to load neighbor details');
         console.error('Error fetching neighbor details:', err);
@@ -89,8 +91,45 @@ export default function ContributorPage() {
         {!loading && !error && data && (
           <>
             <h1>{data.neighbor.fullName || data.neighbor.slackFullName || "unnamed"}</h1>
-            <p>Hackatime Hours: {data.neighbor.totalTimeHackatimeHours}hr</p>
             
+
+
+            <p>Hackatime Hours: {data.neighbor.totalTimeHackatimeHours}hr</p>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <p>Weighted Grants Earned: 
+                {[...Array(10)].map((_, index) => {
+                  const fullGrants = Math.floor(numberOfWeightedGrants);
+                  const decimalPart = numberOfWeightedGrants - fullGrants;
+                  let opacity = 0.1; // default opacity for unfilled coins
+                  
+                  if (index < fullGrants) {
+                    opacity = 1; // fully filled coins
+                  } else if (index === fullGrants && decimalPart > 0) {
+                    opacity = 0.1 + (decimalPart * 0.9); // partial opacity for the next coin
+                  }
+                  
+                  return (
+                    <span 
+                      key={index}
+                      style={{ 
+                        opacity,
+                        transition: 'opacity 0.3s ease'
+                      }}
+                    >
+                      🪙
+                    </span>
+                  );
+                })}
+                <span style={{ marginLeft: '8px', color: '#666' }}>
+                  ({numberOfWeightedGrants.toFixed(1)}/10.0)
+                </span>
+              </p>
+              <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px' }}>
+                Every weighted grant is equivalent to 10 hours spent coding that's approved and enters the final You Ship, We Ship database. To ensure your hours get reviewed, commit hourly, and made devlogs every 2-4 hours. Hack Clubbers earn weighted grants by shipping their projects.
+              </p>
+            </div>
+
             <h2>Apps</h2>
             {data.apps.length > 0 ? (
               <ol>

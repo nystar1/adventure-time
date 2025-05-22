@@ -28,7 +28,8 @@ export default async function handler(req, res) {
           "totalTimeHackatimeHours",
           "totalTimeStopwatchHours",
           "Full Name",
-          "Apps"
+          "Apps",
+          "GrantedHours"
         ],
         filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
         maxRecords: 1
@@ -82,7 +83,8 @@ export default async function handler(req, res) {
         totalTimeCombinedHours: Math.round(neighbor.fields.totalTimeCombinedHours || 0),
         totalTimeHackatimeHours: Math.round(neighbor.fields.totalTimeHackatimeHours || 0),
         totalTimeStopwatchHours: Math.round(neighbor.fields.totalTimeStopwatchHours || 0),
-        fullName: neighbor.fields["Full Name"] || null
+        fullName: neighbor.fields["Full Name"] || null,
+        grantedHours: neighbor.fields.GrantedHours || 0
       },
       apps: sortedApps
     };

@@ -42,7 +42,8 @@ export default async function handler(req, res) {
           "Description",
           "Neighbors",
           "Icon",
-          "YSWS Project Submission"
+          "YSWS Project Submission",
+          "playableURL"
         ],
         filterByFormula: `{Name} = '${appNameLower}'`,
         maxRecords: 1
@@ -84,6 +85,7 @@ export default async function handler(req, res) {
         name: app.fields.Name || "Unnamed App",
         githubLink: app.fields["Github Link"] || null,
         appLink: app.fields["App Link"] || null,
+        playableURL: app.fields["playableURL"] || null,
         description: app.fields.Description || "",
         icon: app.fields.Icon ? (
           typeof app.fields.Icon === 'string' ? app.fields.Icon :

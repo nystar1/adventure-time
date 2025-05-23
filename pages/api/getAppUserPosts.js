@@ -30,7 +30,10 @@ export default async function handler(req, res) {
       slackId: post.fields.slackId || null,
       appName: post.fields.appName || null,
       photoboothVideo: post.fields.photoboothVideo || null,
-      demoVideo: post.fields.demoVideo || null
+      demoVideo: post.fields.demoVideo || null,
+      approved_time_hours: post.fields.approved_time_hours || null,
+      review_comment: post.fields.review_comment || null,
+      review_status: post.fields.review_status || null
     }));
 
     return res.status(200).json({ posts: formatted });

@@ -93,6 +93,12 @@ export default function AppPage() {
   const contributorName = contributorData?.neighbor?.fullName || contributorData?.neighbor?.slackFullName || contributor;
   const contributorPfp = contributorData?.neighbor?.pfp;
 
+  const formatHoursToHoursMinutes = (hours) => {
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    return `${wholeHours}h ${minutes}m`;
+  };
+
   const breadcrumbItems = [
     { label: "Adventure Time", href: "/" },
     { label: "Neighborhood", href: "/neighborhood" },
@@ -129,6 +135,34 @@ export default function AppPage() {
         {!loading && !error && data && (
           <>
             <h1>{data.app.name}</h1>
+            {data.app.appLink ? (
+              <div style={{ marginBottom: 12 }}>
+                <a href={data.app.appLink} target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3', textDecoration: 'underline' }}>
+                  {data.app.appLink}
+                </a>
+              </div>
+            ) : (data.app.playableURL && data.app.playableURL !== "") ? (
+              (() => {
+                let finalPlayable = null;
+                if (Array.isArray(data.app.playableURL)) {
+                  finalPlayable = data.app.playableURL.filter(Boolean).at(-1)?.trim();
+                } else if (typeof data.app.playableURL === 'string') {
+                  finalPlayable = data.app.playableURL.split(/,\s*/).filter(Boolean).at(-1)?.trim();
+                }
+                return finalPlayable ? (
+                  <div style={{ marginBottom: 12 }}>
+                    <a
+                      href={finalPlayable}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ color: '#0070f3', textDecoration: 'underline' }}
+                    >
+                      {finalPlayable}
+                    </a>
+                  </div>
+                ) : null;
+              })()
+            ) : null}
             {/* Contributors section */}
             {Array.isArray(data.app.neighbors) && data.app.neighbors.length > 0 && (
               <div style={{ marginBottom: 16 }}>
@@ -262,6 +296,15 @@ export default function AppPage() {
                           </div>
                         )}
                         {post.content && <div>{post.content}</div>}
+                        <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#666' }}>
+                          <div>Review Status: {post.review_status || 'pending'}</div>
+                          {post.approved_time_hours && (
+                            <div>Approved Hours: {formatHoursToHoursMinutes(post.approved_time_hours)}</div>
+                          )}
+                          {post.review_comment && (
+                            <div>Review Comment: {post.review_comment}</div>
+                          )}
+                        </div>
                         <strong>{dateTitle}</strong>
                       </li>
                     );

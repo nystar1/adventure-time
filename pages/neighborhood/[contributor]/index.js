@@ -126,7 +126,7 @@ export default function ContributorPage() {
                 </span>
               </p>
               <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px' }}>
-                Every weighted grant is equivalent to 10 hours spent coding that's approved and enters the final You Ship, We Ship database. To ensure your hours get accepted, commit hourly, and made devlogs every 2-4 hours. Hack Clubbers earn weighted grants by shipping their projects.
+                Every weighted grant is equivalent to 10 hours spent coding that's approved and enters the final You Ship, We Ship database. To ensure your hours get accepted, commit hourly, and make devlogs every 2-4 hours. Hack Clubbers earn weighted grants by shipping their projects.
               </p>
             </div>
 

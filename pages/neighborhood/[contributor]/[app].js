@@ -136,6 +136,8 @@ export default function AppPage() {
     }
   }
 
+  const adventureTimeLink = `https://adventure-time.hackclub.dev/neighborhood/${contributor}/${encodeURIComponent(app)}`;
+
   const handleMoleTest = async () => {
     setMoleStatus(null);
     setMoleError(null);
@@ -155,7 +157,7 @@ export default function AppPage() {
       const createRes = await fetch("/api/moleCreate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ appLink, githubUrl })
+        body: JSON.stringify({ appLink, githubUrl, readmeUrl: adventureTimeLink })
       });
       if (!createRes.ok) throw new Error("Failed to create mole record");
       const { record_id } = await createRes.json();

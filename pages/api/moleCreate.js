@@ -7,9 +7,9 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { appLink, githubUrl, readmeUrl } = req.body;
-  if (!appLink || !githubUrl || !readmeUrl) {
-    return res.status(400).json({ message: "Missing appLink, githubUrl, or readmeUrl" });
+  const { appLink, githubUrl } = req.body;
+  if (!appLink || !githubUrl) {
+    return res.status(400).json({ message: "Missing appLink, githubUrl" });
   }
 
   try {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const created = await base("checks").create({
       play_url: appLink,
       repo_url: githubUrl,
-      readme_url: readmeUrl
+      readme_url: ""
     });
     return res.status(200).json({ record_id: created.getId() });
   } catch (error) {

@@ -7,29 +7,29 @@ export default async function handler(req, res) {
     return res.status(405).json({ message: "Method not allowed" });
   }
 
-  const { appLink, githubUrl } = req.body;
-  if (!appLink || !githubUrl) {
-    return res.status(400).json({ message: "Missing appLink or githubUrl" });
+  const { appLink, githubUrl, readmeUrl } = req.body;
+  if (!appLink || !githubUrl || !readmeUrl) {
+    return res.status(400).json({ message: "Missing appLink, githubUrl, or readmeUrl" });
   }
 
   try {
-    // Parse githubUrl to get owner, repo, and branch
-    let readme_url = "";
-    try {
-      const githubMatch = githubUrl.match(/github.com\/(.*?)\/(.*?)(?:\/(tree|blob)\/([^\/]+))?(?:\/|$)/);
-      if (githubMatch) {
-        const owner = githubMatch[1];
-        const repo = githubMatch[2];
-        const branch = githubMatch[4] || "main";
-        readme_url = `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/README.md`;
-      }
-    } catch (e) {
-      readme_url = githubUrl;
+    // Check if a record with the same play_url and repo_url exists and is not complete
+    const existingRecords = await base("checks")
+      .select({
+        filterByFormula: `AND({play_url} = '${appLink}', {repo_url} = '${githubUrl}')`,
+        maxRecords: 5
+      })
+      .all();
+    const cued = existingRecords.find(
+      rec => rec.fields && (rec.fields.ai_guess === undefined || rec.fields.ai_guess === null)
+    );
+    if (cued) {
+      return res.status(200).json({ record_id: cued.id, already_cued: true });
     }
     const created = await base("checks").create({
       play_url: appLink,
       repo_url: githubUrl,
-      readme_url
+      readme_url: readmeUrl
     });
     return res.status(200).json({ record_id: created.getId() });
   } catch (error) {

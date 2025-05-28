@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
 export default function AppPage() {
@@ -15,6 +15,10 @@ export default function AppPage() {
   const [projectDetails, setProjectDetails] = useState({});
   const [posts, setPosts] = useState([]);
   const [contributorHours, setContributorHours] = useState({});
+  const [moleStatus, setMoleStatus] = useState(null);
+  const [moleLoading, setMoleLoading] = useState(false);
+  const [moleError, setMoleError] = useState(null);
+  const moleIntervalRef = useRef(null);
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -120,6 +124,74 @@ export default function AppPage() {
     { label: data?.app?.name || "Loading...", href: `/neighborhood/${contributor}/${app}` }
   ];
 
+  // Compute the link to display and use for appLink
+  let finalLink = null;
+  if (data?.app?.appLink) {
+    finalLink = data.app.appLink;
+  } else if (data?.app?.playableURL && data.app.playableURL !== "") {
+    if (Array.isArray(data.app.playableURL)) {
+      finalLink = data.app.playableURL.filter(Boolean).at(-1)?.trim();
+    } else if (typeof data.app.playableURL === 'string') {
+      finalLink = data.app.playableURL.split(/,\s*/).filter(Boolean).at(-1)?.trim();
+    }
+  }
+
+  const handleMoleTest = async () => {
+    setMoleStatus(null);
+    setMoleError(null);
+    setMoleLoading(true);
+    // Use the displayed link as appLink
+    let appLink = finalLink;
+    console.log('DEBUG: appLink', appLink);
+    console.log('DEBUG: projects', projects);
+    let githubUrl = projects.find(p => p.githubLink)?.githubLink || appLink;
+    console.log('DEBUG: selected githubUrl', githubUrl);
+    if (!githubUrl) {
+      setMoleError(`Missing githubUrl.\nappLink: ${appLink}\ngithubUrl: ${githubUrl}\nprojects: ${JSON.stringify(projects, null, 2)}`);
+      setMoleLoading(false);
+      return;
+    }
+    try {
+      const createRes = await fetch("/api/moleCreate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appLink, githubUrl })
+      });
+      if (!createRes.ok) throw new Error("Failed to create mole record");
+      const { record_id } = await createRes.json();
+      setMoleStatus({ record_id, ai_guess: null, ai_reasoning: null });
+      // Start polling
+      if (moleIntervalRef.current) clearInterval(moleIntervalRef.current);
+      moleIntervalRef.current = setInterval(async () => {
+        try {
+          const testRes = await fetch(`/api/moleTest?record_id=${record_id}`);
+          if (!testRes.ok) throw new Error("Failed to fetch mole test");
+          const { fields } = await testRes.json();
+          setMoleStatus((prev) => ({ ...prev, ai_guess: fields.ai_guess, ai_reasoning: fields.ai_reasoning }));
+          // Stop polling if ai_guess is not null
+          if (fields.ai_guess !== undefined && fields.ai_guess !== null) {
+            clearInterval(moleIntervalRef.current);
+            setMoleLoading(false);
+          }
+        } catch (err) {
+          setMoleError("Error polling mole test");
+          clearInterval(moleIntervalRef.current);
+          setMoleLoading(false);
+        }
+      }, 5000);
+    } catch (err) {
+      setMoleError("Error creating mole record");
+      setMoleLoading(false);
+    }
+  };
+
+  // Clean up interval on unmount
+  useEffect(() => {
+    return () => {
+      if (moleIntervalRef.current) clearInterval(moleIntervalRef.current);
+    };
+  }, []);
+
   return (
     <>
       <Head>
@@ -135,34 +207,27 @@ export default function AppPage() {
         {!loading && !error && data && (
           <>
             <h1>{data.app.name}</h1>
-            {data.app.appLink ? (
-              <div style={{ marginBottom: 12 }}>
-                <a href={data.app.appLink} target="_blank" rel="noopener noreferrer" style={{ color: '#0070f3', textDecoration: 'underline' }}>
-                  {data.app.appLink}
+            {/* App Link and Mole Test Button */}
+            {finalLink && (
+              <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <a
+                  href={finalLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: '#0070f3', textDecoration: 'underline' }}
+                >
+                  {finalLink}
                 </a>
-              </div>
-            ) : (data.app.playableURL && data.app.playableURL !== "") ? (
-              (() => {
-                let finalPlayable = null;
-                if (Array.isArray(data.app.playableURL)) {
-                  finalPlayable = data.app.playableURL.filter(Boolean).at(-1)?.trim();
-                } else if (typeof data.app.playableURL === 'string') {
-                  finalPlayable = data.app.playableURL.split(/,\s*/).filter(Boolean).at(-1)?.trim();
-                }
-                return finalPlayable ? (
-                  <div style={{ marginBottom: 12 }}>
-                    <a
-                      href={finalPlayable}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      style={{ color: '#0070f3', textDecoration: 'underline' }}
-                    >
-                      {finalPlayable}
-                    </a>
+                <button onClick={handleMoleTest} disabled={moleLoading}>{moleLoading ? 'Loading...' : '𝓂𝑜𝓁𝑒'}</button>
+                {moleError && <span style={{ color: 'red', marginLeft: 8 }}>{moleError}</span>}
+                {moleStatus && moleStatus.ai_guess !== undefined && moleStatus.ai_guess !== null && (
+                  <div style={{ marginTop: 8 }}>
+                    <div><strong>AI Guess:</strong> {String(moleStatus.ai_guess)}</div>
+                    <div><strong>AI Reasoning:</strong> {moleStatus.ai_reasoning}</div>
                   </div>
-                ) : null;
-              })()
-            ) : null}
+                )}
+              </div>
+            )}
             {/* Contributors section */}
             {Array.isArray(data.app.neighbors) && data.app.neighbors.length > 0 && (
               <div style={{ marginBottom: 16 }}>

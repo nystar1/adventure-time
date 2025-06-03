@@ -201,7 +201,7 @@ export default function Feed() {
                             <Link href={`/neighborhood/${item.slackId}/${encodeURIComponent(appName)}`} style={{ textDecoration: 'underline', color: '#0070f3' }}>
                               {appName}
                             </Link>
-                            {` shipped (${releaseLabel})`}
+                            {` shipped a new release`}
                           </div>
                           {item.changesMade && <p>{item.changesMade}</p>}
                           {item.codeUrl && (

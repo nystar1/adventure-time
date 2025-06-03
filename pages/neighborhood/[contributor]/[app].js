@@ -18,6 +18,7 @@ export default function AppPage() {
   const [moleStatus, setMoleStatus] = useState(null);
   const [moleLoading, setMoleLoading] = useState(false);
   const [moleError, setMoleError] = useState(null);
+  const [ships, setShips] = useState([]);
   const moleIntervalRef = useRef(null);
 
   useEffect(() => {
@@ -74,8 +75,26 @@ export default function AppPage() {
         setPosts(data.posts || []);
       })
       .catch(() => setPosts([]));
+
+    // Fetch Ships data if we have contributor data and github link
+    console.log("DEBUG ships", {
+      contributor: contributor,
+      projects,
+      githubLink: projects.find(p => p.githubLink)?.githubLink
+    });
+    if (projects.length > 0) {
+      const githubLink = projects.find(p => p.githubLink)?.githubLink;
+      if (githubLink) {
+        fetch(`/api/getAppShips?slackId=${encodeURIComponent(contributor)}&githubLink=${encodeURIComponent(githubLink)}`)
+          .then(res => res.ok ? res.json() : Promise.reject(res))
+          .then(data => {
+            setShips(data.ships || []);
+          })
+          .catch(() => setShips([]));
+      }
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projects, contributor, app]);
+  }, [projects, contributor, app, contributorData]);
 
   useEffect(() => {
     if (!data?.app?.neighbors || !data.app.name) return;
@@ -310,7 +329,7 @@ export default function AppPage() {
               <p>No hackatime projects found for this user and app.</p>
             )}
             <h2>Devlogs</h2>
-            {posts.length > 0 ? (
+            {(posts.length > 0 || ships.length > 0) ? (
               <ul>
                 {(() => {
                   // Gather all spans from all projectDetails
@@ -324,21 +343,24 @@ export default function AppPage() {
                   // Sort allSpans by end_time
                   allSpans.sort((a, b) => a.end_time - b.end_time);
 
-                  // Sort posts by createdAt
-                  const sortedPosts = [...posts].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+                  // Merge posts and ships into a single timeline
+                  const timeline = [
+                    ...posts.map(post => ({ ...post, _type: 'post' })),
+                    ...ships.map(ship => ({ ...ship, _type: 'ship' }))
+                  ].filter(item => item.createdAt).sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
                   let lastEnd = -Infinity;
                   let usedSpanIds = new Set();
                   let cumulativeDuration = 0;
-                  const postEls = sortedPosts.map((post, idx) => {
-                    const postEnd = new Date(post.createdAt).getTime() / 1000;
-                    const postStart = idx > 0 ? new Date(sortedPosts[idx - 1].createdAt).getTime() / 1000 : -Infinity;
+                  const timelineEls = timeline.map((item, idx) => {
+                    const itemEnd = new Date(item.createdAt).getTime() / 1000;
+                    const itemStart = idx > 0 ? new Date(timeline[idx - 1].createdAt).getTime() / 1000 : -Infinity;
                     // Sum durations of spans that end in this window
                     let totalDuration = 0;
                     allSpans.forEach((span, i) => {
                       if (
-                        span.end_time > postStart &&
-                        span.end_time <= postEnd &&
+                        span.end_time > itemStart &&
+                        span.end_time <= itemEnd &&
                         !usedSpanIds.has(i)
                       ) {
                         totalDuration += span.duration || 0;
@@ -348,55 +370,87 @@ export default function AppPage() {
                     cumulativeDuration += totalDuration;
                     const totalHours = (totalDuration / 3600).toFixed(1);
                     const cumulativeHours = (cumulativeDuration / 3600).toFixed(1);
-                    const dateTitle = post.createdAt ? new Date(post.createdAt).toLocaleString() : "Untitled";
-                    return (
-                      <li key={post.id} style={{ marginBottom: 24 }}>
-                        <p>{cumulativeHours} Logged Hours (+{totalHours})</p>
-                        {(post.demoVideo || post.photoboothVideo) && (
-                          <div style={{ display: 'flex', flexDirection: 'row', gap: 8, margin: '8px 0' }}>
-                            {post.photoboothVideo && (
-                              <video src={post.photoboothVideo} controls width={160} style={{ maxWidth: '100%' }} />
+                    const dateTitle = item.createdAt ? new Date(item.createdAt).toLocaleString() : "Untitled";
+                    if (item._type === 'post') {
+                      return (
+                        <li key={item.id} style={{ marginBottom: 24 }}>
+                          <p>{cumulativeHours} Logged Hours (+{totalHours})</p>
+                          {(item.demoVideo || item.photoboothVideo) && (
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: 8, margin: '8px 0' }}>
+                              {item.photoboothVideo && (
+                                <video src={item.photoboothVideo} controls width={160} style={{ maxWidth: '100%' }} />
+                              )}
+                              {item.demoVideo && (
+                                <video src={item.demoVideo} controls width={160} style={{ maxWidth: '100%' }} />
+                              )}
+                            </div>
+                          )}
+                          {item.content && <div>{item.content}</div>}
+                          <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#666' }}>
+                            <div>Review Status: {item.review_status || 'pending'}</div>
+                            {item.approved_time_hours && (
+                              <div>Approved Hours: {formatHoursToHoursMinutes(item.approved_time_hours)}</div>
                             )}
-                            {post.demoVideo && (
-                              <video src={post.demoVideo} controls width={160} style={{ maxWidth: '100%' }} />
+                            {item.review_comment && (
+                              <div>Review Comment: {item.review_comment}</div>
                             )}
                           </div>
-                        )}
-                        {post.content && <div>{post.content}</div>}
-                        <div style={{ marginTop: '8px', fontSize: '0.9em', color: '#666' }}>
-                          <div>Review Status: {post.review_status || 'pending'}</div>
-                          {post.approved_time_hours && (
-                            <div>Approved Hours: {formatHoursToHoursMinutes(post.approved_time_hours)}</div>
+                          <strong>{dateTitle}</strong>
+                        </li>
+                      );
+                    } else if (item._type === 'ship') {
+                      // Find the index of this ship among all ships in the timeline
+                      const shipTimelineIndex = timeline.filter(t => t._type === 'ship' && new Date(t.createdAt) <= new Date(item.createdAt)).indexOf(item);
+                      const releaseLabel = shipTimelineIndex === 0 ? 'Release 1.0' : `Release 1.${shipTimelineIndex}`;
+                      const appName = data?.app?.name || '';
+                      return (
+                        <li key={item.id} style={{ marginBottom: 24 }}>
+                          <p style={{ fontWeight: 600 }}>{appName} ({releaseLabel})</p>
+                          {item.changesMade && (
+                            <p>{item.changesMade}</p>
                           )}
-                          {post.review_comment && (
-                            <div>Review Comment: {post.review_comment}</div>
+                          {item.codeUrl && (
+                            <div>
+                              <a href={item.codeUrl} target="_blank" rel="noopener noreferrer">
+                                {item.codeUrl}
+                              </a>
+                            </div>
                           )}
-                        </div>
-                        <strong>{dateTitle}</strong>
-                      </li>
-                    );
+                          {item.playableUrl && (
+                            <div>
+                              <a href={item.playableUrl} target="_blank" rel="noopener noreferrer">
+                                {item.playableUrl}
+                              </a>
+                            </div>
+                          )}
+                          <br/>
+                          <strong>{dateTitle}</strong>
+                        </li>
+                      );
+                    }
+                    return null;
                   });
                   // Calculate unposted time
-                  const lastPostEnd = sortedPosts.length > 0 ? new Date(sortedPosts[sortedPosts.length - 1].createdAt).getTime() / 1000 : -Infinity;
+                  const lastTimelineEnd = timeline.length > 0 ? new Date(timeline[timeline.length - 1].createdAt).getTime() / 1000 : -Infinity;
                   let unpostedTime = 0;
                   allSpans.forEach((span, i) => {
-                    if (span.end_time > lastPostEnd && !usedSpanIds.has(i)) {
+                    if (span.end_time > lastTimelineEnd && !usedSpanIds.has(i)) {
                       unpostedTime += span.duration || 0;
                       usedSpanIds.add(i);
                     }
                   });
                   if (unpostedTime > 0) {
-                    postEls.push(
+                    timelineEls.push(
                       <li key="unpostedTime" style={{ marginBottom: 24 }}>
                         <p>{(unpostedTime / 3600).toFixed(1)} hours unposted</p>
                       </li>
                     );
                   }
-                  return postEls;
+                  return timelineEls;
                 })()}
               </ul>
             ) : (
-              <p>No devlogs found for this user and app.</p>
+              <p>No devlogs or ships found for this user and app.</p>
             )}
           </>
         )}

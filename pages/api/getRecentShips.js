@@ -38,15 +38,37 @@ export default async function handler(req, res) {
       });
     }
 
-    const formatted = ships.map(ship => ({
-      id: ship.id,
-      appName: ship.fields["App Name"] || ship.fields["appName"] || null,
-      createdAt: ship.fields["Created At"] || null,
-      changesMade: ship.fields["changesMade"] || null,
-      codeUrl: ship.fields["Code URL"] || null,
-      playableUrl: ship.fields["Playable URL"] || null,
-      slackId: emailToSlackId[ship.fields["Email"]] || null
-    }));
+    // Gather all app names from ships
+    const appNames = ships.map(ship => ship.fields["App Name"] || ship.fields["appName"]).filter(Boolean);
+    // Batch fetch canonical app names from Apps table
+    let appNameToCanonical = {};
+    if (appNames.length > 0) {
+      const appRecords = await base("Apps")
+        .select({
+          filterByFormula: `OR(${appNames.map(name => `{Name} = '${name}'`).join(",")})`,
+          fields: ["Name"]
+        })
+        .all();
+      appRecords.forEach(app => {
+        if (app.fields.Name) {
+          appNameToCanonical[app.fields.Name] = app.fields.Name;
+        }
+      });
+    }
+
+    const formatted = ships.map(ship => {
+      const appName = ship.fields["App Name"] || ship.fields["appName"] || null;
+      return {
+        id: ship.id,
+        appName,
+        canonicalAppName: appNameToCanonical[appName] || appName,
+        createdAt: ship.fields["Created At"] || null,
+        changesMade: ship.fields["changesMade"] || null,
+        codeUrl: ship.fields["Code URL"] || null,
+        playableUrl: ship.fields["Playable URL"] || null,
+        slackId: emailToSlackId[ship.fields["Email"]] || null
+      };
+    });
 
     return res.status(200).json({ ships: formatted });
   } catch (error) {

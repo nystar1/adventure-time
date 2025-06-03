@@ -182,6 +182,7 @@ export default function Feed() {
                       const shipTimelineIndex = shipsInTimeline.indexOf(item);
                       const releaseLabel = shipTimelineIndex === 0 ? 'Release 1.0' : `Release 1.${shipTimelineIndex}`;
                       const appName = item.appName || '';
+                      const canonicalAppName = item.canonicalAppName || appName;
                       const neighborPfp = getNeighborPfp(item.slackId);
                       const neighborName = getNeighborName(item.slackId);
                       return (
@@ -194,11 +195,7 @@ export default function Feed() {
                                 style={{ width: 24, height: 24, borderRadius: '4px', border: '2px solid #fff', boxShadow: '0 0 0 1px #ccc' }}
                               />
                             )}
-                            <Link href={`/neighborhood/${item.slackId}`} style={{ textDecoration: 'underline', color: '#0070f3' }}>
-                              {neighborName}
-                            </Link>
-                            {" "}in{" "}
-                            <Link href={`/neighborhood/${item.slackId}/${encodeURIComponent(appName)}`} style={{ textDecoration: 'underline', color: '#0070f3' }}>
+                            <Link href={`/neighborhood/${item.slackId}/${encodeURIComponent(canonicalAppName)}`} style={{ textDecoration: 'underline', color: '#0070f3' }}>
                               {appName}
                             </Link>
                             {` shipped a new release`}

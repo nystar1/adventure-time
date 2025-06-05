@@ -7,6 +7,7 @@ export default function Review() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [pfp, setPfp] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('authToken');
@@ -16,6 +17,7 @@ export default function Review() {
     }
     setHasToken(!!token);
     fetchTasks(token);
+    fetchPfp(token);
   }, []);
 
   const fetchTasks = async (token) => {
@@ -29,6 +31,23 @@ export default function Review() {
       console.error('Error:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPfp = async (token) => {
+    try {
+      const response = await fetch(`/api/getMyPfp?token=${token}`);
+      if (!response.ok) return;
+      const data = await response.json();
+      let url = null;
+      if (Array.isArray(data.pfp) && data.pfp.length > 0) {
+        url = data.pfp[0].thumbnails?.small?.url || data.pfp[0].url;
+      } else if (typeof data.pfp === 'string') {
+        url = data.pfp;
+      }
+      setPfp(url);
+    } catch (err) {
+      // ignore
     }
   };
 
@@ -54,8 +73,16 @@ export default function Review() {
                 backgroundColor: '#9CA3AF',
                 borderRadius: '4px',
                 border: '2px solid #fff',
-                boxShadow: '0 0 0 1px #ccc'
-              }}></div>
+                boxShadow: '0 0 0 1px #ccc',
+                overflow: 'hidden',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                {pfp && (
+                  <img src={pfp} alt="pfp" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 0 }} />
+                )}
+              </div>
             </>
           )}
         </div>

@@ -75,6 +75,7 @@ export default function ReviewRecordPage() {
   const moleIntervalRef = useRef(null);
   const [neighborSlackId, setNeighborSlackId] = useState(null);
   const [devlogStatuses, setDevlogStatuses] = useState({});
+  const [pfp, setPfp] = useState(null);
 
   // Fetch contributor/app from review assignment
   useEffect(() => {
@@ -167,6 +168,25 @@ export default function ReviewRecordPage() {
         });
     });
   }, [data?.app?.neighbors, data?.app?.name]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      fetch(`/api/getMyPfp?token=${token}`)
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.pfp) {
+            let url = null;
+            if (Array.isArray(data.pfp) && data.pfp.length > 0) {
+              url = data.pfp[0].thumbnails?.small?.url || data.pfp[0].url;
+            } else if (typeof data.pfp === 'string') {
+              url = data.pfp;
+            }
+            setPfp(url);
+          }
+        });
+    }
+  }, []);
 
   const handleRadio = (name, value) => {
     setAnswers(prev => ({ ...prev, [name]: value }));
@@ -577,7 +597,17 @@ export default function ReviewRecordPage() {
           )}
         </div>
         {/* RIGHT HALF: Review questions (existing code remains) */}
-        <div style={{ flex: 1, height: '100vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', borderLeft: '1px solid #000', overflowY: 'auto' }}>
+        <div style={{ flex: 1, height: '100vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', borderLeft: '1px solid #000', overflowY: 'auto', position: 'relative' }}>
+          {/* Pfp in top right */}
+          <div style={{ position: 'absolute', top: 16, right: 24, zIndex: 10, width: 32, height: 32, backgroundColor: '#9CA3AF', borderRadius: '4px', border: '2px solid #fff', boxShadow: '0 0 0 1px #ccc', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {pfp && (
+              <img
+                src={pfp}
+                alt="pfp"
+                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 0 }}
+              />
+            )}
+          </div>
           <form style={{ width: '100%', background: 'none', padding: 0, borderRadius: 0, boxShadow: 'none', border: 'none' }}>
             {Array.from({ length: completed || currentStep > DEVLOG_STEP_INDEX ? questions.length : currentStep + 1 }).map((_, idx) => {
               const q = questions[idx];

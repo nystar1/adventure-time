@@ -4,12 +4,6 @@ const base = new Airtable({
   apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY,
 }).base(process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID);
 
-// Helper function to filter out email addresses
-const filterEmails = (text) => {
-  if (!text) return text;
-  return text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]');
-};
-
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method not allowed' });
@@ -31,9 +25,9 @@ export default async function handler(req, res) {
 
     const tasks = records.map(record => ({
       id: record.id,
-      projectName: filterEmails(record.fields.projectName) || 'Unnamed Project',
+      projectName: record.fields.projectName || 'Unnamed Project',
       slackPfp: record.fields.reviewedNeighborPfp?.[0]?.url || null,
-      slackHandle: filterEmails(record.fields.reviewedNeighborSlackHandle) || 'Unknown',
+      slackHandle: record.fields.reviewedNeighborSlackHandle || 'Unknown',
       status: record.fields.status || 'pending',
       postId: record.fields.postId,
       isComplete: record.fields.isComplete || false,

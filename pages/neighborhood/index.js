@@ -8,11 +8,12 @@ export default function Neighborhood() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortType, setSortType] = useState('largestLogged');
+  const [showOnlyApprovedFlights, setShowOnlyApprovedFlights] = useState(false);
 
   useEffect(() => {
     const fetchNeighbors = async () => {
       try {
-        const response = await fetch('/api/getNeighborsSecurely');
+        const response = await fetch(`/api/getNeighborsSecurely?showOnlyApprovedFlights=${showOnlyApprovedFlights}`);
         const data = await response.json();
         // Filter out neighbors without names or Slack handles
         const filteredNeighbors = data.neighbors.filter(
@@ -28,7 +29,7 @@ export default function Neighborhood() {
     };
 
     fetchNeighbors();
-  }, []);
+  }, [showOnlyApprovedFlights]);
 
   const sortedNeighbors = [...neighbors].sort((a, b) => {
     if (sortType === 'largestLogged') {
@@ -69,6 +70,16 @@ export default function Neighborhood() {
             <option value="largestChecked">Largest checked hours</option>
             <option value="smallestChecked">Smallest checked hours</option>
           </select>
+          <div style={{ marginTop: 8 }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={showOnlyApprovedFlights}
+                onChange={e => setShowOnlyApprovedFlights(e.target.checked)}
+              />
+              Show Only Approved For Flights
+            </label>
+          </div>
         </div>
         
         {loading && <p>Loading neighbors...</p>}
@@ -82,8 +93,8 @@ export default function Neighborhood() {
                   {neighbor.fullName || neighbor.slackFullName || neighbor.slackId || "unnamed"}
                 </Link>
                 {" "}({neighbor.totalTimeHackatimeHours}hr logged)
-                  <span> ({(neighbor.totalCheckedTime).toFixed(1)}hr checked)</span>
-                
+                <span> ({(neighbor.totalCheckedTime).toFixed(1)}hr checked)</span>
+                {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(new Date(neighbor.moveInDate).getTime() + 24*60*60*1000).toLocaleDateString()})`}
               </li>
             ))}
           </ol>

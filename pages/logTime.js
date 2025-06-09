@@ -61,15 +61,7 @@ export default function LogTime() {
     if (isLogging && unloggedTime) {
       setCurrentTime(parseFloat(unloggedTime));
       interval = setInterval(() => {
-        setCurrentTime(prev => {
-          const newTime = prev + 1/3600;
-          // Stop logging if we reach 4 hours
-          if (newTime >= 4) {
-            setIsLogging(false);
-            return 4;
-          }
-          return newTime;
-        });
+        setCurrentTime(prev => prev + 1/3600);
       }, 1000);
     } else {
       setCurrentTime(null);
@@ -83,17 +75,12 @@ export default function LogTime() {
       const project = projects.find(p => p.id === selectedProject);
       if (project) {
         heartbeatInterval = setInterval(() => {
-          // Only send heartbeat if we're under 4 hours
-          if (currentTime < 4) {
-            sendHeartbeat(project.name);
-          } else {
-            setIsLogging(false);
-          }
+          sendHeartbeat(project.name);
         }, 10000);
       }
     }
     return () => clearInterval(heartbeatInterval);
-  }, [isLogging, selectedProject, projects, currentTime]);
+  }, [isLogging, selectedProject, projects]);
 
   const fetchPfp = async (token) => {
     try {
@@ -289,12 +276,7 @@ export default function LogTime() {
                     {isLogging ? (
                       <button onClick={() => setIsLogging(false)}>Stop Logging</button>
                     ) : (
-                      <button 
-                        onClick={() => setIsLogging(true)} 
-                        disabled={!selectedProject || !apiKey || parseFloat(unloggedTime) >= 4}
-                      >
-                        Start Logging
-                      </button>
+                      <button onClick={() => setIsLogging(true)} disabled={!selectedProject || !apiKey}>Start Logging</button>
                     )}
                     {projects.length === 0 ? (
                       <p>Loading...</p>

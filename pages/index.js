@@ -40,6 +40,7 @@ export default function Home() {
           {hasToken ? (
             <>
               <a href="/review">Review</a>
+              <a href="/logTime" style={{ marginLeft: '8px' }}>Logger</a>
               <div style={{ 
                 width: '24px', 
                 height: '24px', 

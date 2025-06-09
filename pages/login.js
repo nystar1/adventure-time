@@ -56,7 +56,14 @@ export default function Login() {
       if (response.ok) {
         setError('');
         localStorage.setItem('authToken', data.token);
-        router.push('/review');
+        // Redirect to intended page if present
+        const redirect = localStorage.getItem('redirectAfterLogin');
+        if (redirect) {
+          localStorage.removeItem('redirectAfterLogin');
+          router.push(redirect);
+        } else {
+          router.push('/review');
+        }
       } else {
         setError(data.message || 'Invalid OTP');
       }

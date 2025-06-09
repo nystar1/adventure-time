@@ -19,7 +19,8 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: 'Reviewer not found' });
     }
     const pfp = records[0].fields.Pfp || null;
-    res.status(200).json({ pfp });
+    const slackId = records[0].fields["Slack ID (from slackNeighbor)"] || null;
+    res.status(200).json({ pfp, slackId });
   } catch (error) {
     console.error('Error fetching pfp:', error);
     res.status(500).json({ message: 'Failed to fetch pfp' });

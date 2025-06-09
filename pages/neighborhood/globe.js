@@ -71,14 +71,20 @@ function latLonToVec3(lat, lon, radius = 1.001) {
   ];
 }
 
-function BlinkingDot({ position, onClick, interactive }) {
+function BlinkingDot({ position, onClick, interactive, color = "red" }) {
   const meshRef = useRef();
   useFrame(({ clock }) => {
     // Animate scale with a sine wave for blinking effect
     const t = clock.getElapsedTime();
-    const scale = 0.5 + 0.5 * Math.abs(Math.sin(t * 2)); // between 0.5 and 1.0
+    const scale = Math.abs(Math.sin(t * 2)); // between 0 and 1.0
     if (meshRef.current) {
-      meshRef.current.scale.set(scale, scale, scale);
+      // Make red dots 50% smaller and yellow dots 30% smaller than green
+      const baseSize = color === "red" 
+        ? 0.0075 
+        : color === "#ffff00" 
+          ? 0.0105  // 30% smaller than 0.015
+          : 0.015;
+      meshRef.current.scale.set(scale * baseSize, scale * baseSize, scale * baseSize);
     }
   });
   // Cursor pointer handlers
@@ -91,36 +97,84 @@ function BlinkingDot({ position, onClick, interactive }) {
   return (
     <Sphere
       ref={meshRef}
-      args={[0.015, 16, 16]}
+      args={[1, 16, 16]} // Changed to 1 since we're controlling size through scale
       position={position}
       onClick={onClick}
       onPointerOver={handlePointerOver}
       onPointerOut={handlePointerOut}
     >
-      <meshBasicMaterial color="red" />
+      <meshBasicMaterial color={color} />
     </Sphere>
   );
 }
 
 function AirportDots({ neighbors, airportsData }) {
   const router = useRouter();
-  return neighbors.map((neighbor) => {
-    if (!neighbor.airport) return null;
+  
+  // Group neighbors by airport
+  const airportGroups = neighbors.reduce((groups, neighbor) => {
+    if (!neighbor.airport) return groups;
     const code = neighbor.airport.toUpperCase();
-    // Try IATA first, then ICAO
+    if (!groups[code]) {
+      groups[code] = [];
+    }
+    groups[code].push(neighbor);
+    return groups;
+  }, {});
+
+  // Helper to calculate offset position
+  const calculateOffsetPosition = (basePosition, index, total) => {
+    if (total <= 1) return basePosition;
+    
+    // Calculate angle for this dot (evenly spread in a circle)
+    const angle = (index / total) * Math.PI * 2;
+    // Small radius for the circle of dots (adjust this value to change spread)
+    const radius = 0.01;
+    
+    // Calculate offset in the tangent plane
+    const offsetX = Math.cos(angle) * radius;
+    const offsetZ = Math.sin(angle) * radius;
+    
+    // Create a temporary vector for the base position
+    const pos = new THREE.Vector3(...basePosition);
+    // Create a temporary vector for the offset
+    const offset = new THREE.Vector3(offsetX, 0, offsetZ);
+    
+    // Project the offset onto the sphere's surface
+    const normal = pos.clone().normalize();
+    const tangent = offset.clone().sub(normal.multiplyScalar(offset.dot(normal)));
+    const finalPos = pos.clone().add(tangent).normalize();
+    
+    return [finalPos.x, finalPos.y, finalPos.z];
+  };
+
+  return Object.entries(airportGroups).map(([code, airportNeighbors]) => {
+    // Find airport data
     let airport = Object.values(airportsData).find(
       a => a.iata?.toUpperCase() === code || a.icao?.toUpperCase() === code
     );
     if (!airport || !airport.lat || !airport.lon) return null;
-    return (
+
+    // Get base position for this airport
+    const basePosition = latLonToVec3(Number(airport.lat), Number(airport.lon));
+    
+    // Create dots for each neighbor at this airport
+    return airportNeighbors.map((neighbor, index) => (
       <BlinkingDot
         key={neighbor.slackId}
-        position={latLonToVec3(Number(airport.lat), Number(airport.lon))}
+        position={calculateOffsetPosition(basePosition, index, airportNeighbors.length)}
         onClick={() => router.push(`/neighborhood/${neighbor.slackId}`)}
         interactive={true}
+        color={
+          neighbor.approvedFlightStipend 
+            ? "#00ff00" 
+            : neighbor.totalTimeHackatimeHours >= 100 
+              ? "#ffff00" 
+              : "red"
+        }
       />
-    );
-  });
+    ));
+  }).flat().filter(Boolean);
 }
 
 export default function GlobePage() {

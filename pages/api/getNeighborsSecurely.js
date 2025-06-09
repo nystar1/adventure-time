@@ -10,11 +10,14 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { showOnlyApprovedFlights } = req.query;
+    const { showOnlyApprovedFlights, showOnlyNoFeedback } = req.query;
     
     let filterFormula = "totalTimeHackatimeHours >= 1.0";
     if (showOnlyApprovedFlights === 'true') {
       filterFormula = `AND(${filterFormula}, approvedFlightStipend = TRUE())`;
+    }
+    if (showOnlyNoFeedback === 'true') {
+      filterFormula = `AND(${filterFormula}, gavefeedback != TRUE())`;
     }
 
     const neighborRecords = await base("Neighbors")
@@ -31,7 +34,8 @@ export default async function handler(req, res) {
           "Full Name",
           "airport",
           "approvedFlightStipend",
-          "move-in-date"
+          "move-in-date",
+          "gavefeedback"
         ],
         filterByFormula: filterFormula,
         sort: [{ field: "totalTimeHackatimeHours", direction: "desc" }]
@@ -51,7 +55,8 @@ export default async function handler(req, res) {
       totalCheckedTime: record.fields.totalCheckedTime || 0,
       airport: record.fields.airport,
       approvedFlightStipend: record.fields.approvedFlightStipend || false,
-      moveInDate: record.fields["move-in-date"] || null
+      moveInDate: record.fields["move-in-date"] || null,
+      gaveFeedback: record.fields.gavefeedback || false
     }));
 
     return res.status(200).json({ neighbors });

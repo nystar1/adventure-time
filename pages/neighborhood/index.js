@@ -9,11 +9,12 @@ export default function Neighborhood() {
   const [error, setError] = useState(null);
   const [sortType, setSortType] = useState('largestLogged');
   const [showOnlyApprovedFlights, setShowOnlyApprovedFlights] = useState(false);
+  const [showOnlyNoFeedback, setShowOnlyNoFeedback] = useState(false);
 
   useEffect(() => {
     const fetchNeighbors = async () => {
       try {
-        const response = await fetch(`/api/getNeighborsSecurely?showOnlyApprovedFlights=${showOnlyApprovedFlights}`);
+        const response = await fetch(`/api/getNeighborsSecurely?showOnlyApprovedFlights=${showOnlyApprovedFlights}&showOnlyNoFeedback=${showOnlyNoFeedback}`);
         const data = await response.json();
         // Filter out neighbors without names or Slack handles
         const filteredNeighbors = data.neighbors.filter(
@@ -29,7 +30,7 @@ export default function Neighborhood() {
     };
 
     fetchNeighbors();
-  }, [showOnlyApprovedFlights]);
+  }, [showOnlyApprovedFlights, showOnlyNoFeedback]);
 
   const sortedNeighbors = [...neighbors].sort((a, b) => {
     if (sortType === 'largestLogged') {
@@ -80,6 +81,16 @@ export default function Neighborhood() {
               Show Only Approved For Flights
             </label>
           </div>
+          <div style={{ marginTop: 8 }}>
+            <label>
+              <input
+                type="checkbox"
+                checked={showOnlyNoFeedback}
+                onChange={e => setShowOnlyNoFeedback(e.target.checked)}
+              />
+              Show Only Neighbors Without Feedback
+            </label>
+          </div>
         </div>
         
         {loading && <p>Loading neighbors...</p>}
@@ -95,6 +106,7 @@ export default function Neighborhood() {
                 {" "}({neighbor.totalTimeHackatimeHours}hr logged)
                 <span> ({(neighbor.totalCheckedTime).toFixed(1)}hr checked)</span>
                 {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(new Date(neighbor.moveInDate).getTime() + 24*60*60*1000).toLocaleDateString()})`}
+                {neighbor.gaveFeedback && " (💬 received admin feedback)"}
               </li>
             ))}
           </ol>

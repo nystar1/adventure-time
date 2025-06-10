@@ -105,7 +105,7 @@ export default function Neighborhood() {
                 </Link>
                 {" "}({neighbor.totalTimeHackatimeHours}hr logged)
                 <span> ({(neighbor.totalCheckedTime).toFixed(1)}hr checked)</span>
-                {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(new Date(neighbor.moveInDate).getTime() + 24*60*60*1000).toLocaleDateString()})`}
+                {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(neighbor.moveInDate).toLocaleDateString()})`}
                 {neighbor.gaveFeedback && " (💬 received admin feedback)"}
               </li>
             ))}

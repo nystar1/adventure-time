@@ -41,6 +41,10 @@ export default function Neighborhood() {
       return b.totalCheckedTime - a.totalCheckedTime;
     } else if (sortType === 'smallestChecked') {
       return a.totalCheckedTime - b.totalCheckedTime;
+    } else if (sortType === 'highestRating') {
+      const ratingA = a.starAvg || 0;
+      const ratingB = b.starAvg || 0;
+      return ratingB - ratingA;
     }
     return 0;
   });
@@ -70,6 +74,7 @@ export default function Neighborhood() {
             <option value="smallestLogged">Smallest logged hours</option>
             <option value="largestChecked">Largest checked hours</option>
             <option value="smallestChecked">Smallest checked hours</option>
+            <option value="highestRating">Highest review rating</option>
           </select>
           <div style={{ marginTop: 8 }}>
             <label>
@@ -107,6 +112,7 @@ export default function Neighborhood() {
                 <span> ({(neighbor.totalCheckedTime).toFixed(1)}hr checked)</span>
                 {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(new Date(neighbor.moveInDate).getTime() + 24*60*60*1000).toLocaleDateString()})`}
                 {neighbor.gaveFeedback && " (💬 received admin feedback)"}
+                {neighbor.starAvg > 0 && ` (${neighbor.starAvg.toFixed(1)} ${'⭐'.repeat(Math.floor(neighbor.starAvg))}${neighbor.starAvg % 1 >= 0.5 ? '⭐️' : ''}${'☆'.repeat(5 - Math.ceil(neighbor.starAvg))})`}
               </li>
             ))}
           </ol>

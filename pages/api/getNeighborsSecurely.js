@@ -35,10 +35,10 @@ export default async function handler(req, res) {
           "airport",
           "approvedFlightStipend",
           "move-in-date",
-          "gavefeedback"
+          "gavefeedback",
+          "starAvg"
         ],
-        filterByFormula: filterFormula,
-        sort: [{ field: "totalTimeHackatimeHours", direction: "desc" }]
+        filterByFormula: filterFormula
       })
       .all();
 
@@ -56,7 +56,8 @@ export default async function handler(req, res) {
       airport: record.fields.airport,
       approvedFlightStipend: record.fields.approvedFlightStipend || false,
       moveInDate: record.fields["move-in-date"] || null,
-      gaveFeedback: record.fields.gavefeedback || false
+      gaveFeedback: record.fields.gavefeedback || false,
+      starAvg: Number(record.fields.starAvg) || 0
     }));
 
     return res.status(200).json({ neighbors });

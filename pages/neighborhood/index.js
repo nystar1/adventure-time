@@ -110,7 +110,7 @@ export default function Neighborhood() {
                 </Link>
                 {" "}({neighbor.totalTimeHackatimeHours}hr logged)
                 <span> ({(neighbor.totalCheckedTime).toFixed(1)}hr checked)</span>
-                {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(new Date(neighbor.moveInDate).getTime() + 24*60*60*1000).toLocaleDateString()})`}
+                {neighbor.approvedFlightStipend && neighbor.moveInDate && ` (✈️ to SFO ${new Date(neighbor.moveInDate).toLocaleDateString()})`}
                 {neighbor.gaveFeedback && " (💬 received admin feedback)"}
                 {neighbor.starAvg > 0 && ` (${neighbor.starAvg.toFixed(1)} ${'⭐'.repeat(Math.floor(neighbor.starAvg))}${neighbor.starAvg % 1 >= 0.5 ? '⭐️' : ''}${'☆'.repeat(5 - Math.ceil(neighbor.starAvg))})`}
               </li>

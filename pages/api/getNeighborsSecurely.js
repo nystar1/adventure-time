@@ -36,7 +36,8 @@ export default async function handler(req, res) {
           "approvedFlightStipend",
           "move-in-date",
           "gavefeedback",
-          "starAvg"
+          "starAvg",
+          "hideJakeTheDog"
         ],
         filterByFormula: filterFormula
       })
@@ -57,7 +58,8 @@ export default async function handler(req, res) {
       approvedFlightStipend: record.fields.approvedFlightStipend || false,
       moveInDate: record.fields["move-in-date"] || null,
       gaveFeedback: record.fields.gavefeedback || false,
-      starAvg: Number(record.fields.starAvg) || 0
+      starAvg: Number(record.fields.starAvg) || 0,
+      hideJakeTheDog: record.fields.hideJakeTheDog || false
     }));
 
     return res.status(200).json({ neighbors });

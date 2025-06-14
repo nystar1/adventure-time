@@ -12,6 +12,8 @@ export default function ContributorPage() {
   const [error, setError] = useState(null);
   const [appHours, setAppHours] = useState({});
   const [numberOfWeightedGrants, setNumberOfWeightedGrants] = useState(0);
+  const [commits, setCommits] = useState([]);
+  const [commitsLoading, setCommitsLoading] = useState(true);
 
   useEffect(() => {
     const fetchNeighborDetails = async () => {
@@ -34,6 +36,28 @@ export default function ContributorPage() {
     };
 
     fetchNeighborDetails();
+  }, [contributor]);
+
+  useEffect(() => {
+    const fetchCommits = async () => {
+      if (!contributor) return;
+      
+      try {
+        setCommitsLoading(true);
+        const response = await fetch(`/api/getNeighborCommits?slackId=${contributor}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch commits');
+        }
+        const data = await response.json();
+        setCommits(data.commits || []);
+      } catch (err) {
+        console.error('Error fetching commits:', err);
+      } finally {
+        setCommitsLoading(false);
+      }
+    };
+    
+    fetchCommits();
   }, [contributor]);
 
   useEffect(() => {
@@ -152,6 +176,41 @@ export default function ContributorPage() {
               </ol>
             ) : (
               <p>No apps yet</p>
+            )}
+            
+            <h2>Stopwatch Sessions</h2>
+            {commitsLoading ? (
+              <p>Loading stopwatch sessions...</p>
+            ) : commits.length > 0 ? (
+              <>
+                <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px', marginBottom: '16px' }}>
+                  These hours were logged with the Stopwatch which is subject to scrutiny and may not be approved
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {commits.map(commit => (
+                    <div key={commit.commitId} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {commit.videoLink && (
+                        <div>
+                          <video 
+                            controls 
+                            src={commit.videoLink} 
+                            style={{ maxWidth: '100%', maxHeight: '300px' }}
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <p style={{ margin: '4px 0' }}>{commit.message}</p>
+                        <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#666' }}>
+                          {commit.appName && <span style={{ fontWeight: 'bold' }}>{commit.appName} • </span>}
+                          {new Date(commit.commitTime).toLocaleString()} • {commit.duration} minutes
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p>No stopwatch sessions found</p>
             )}
           </>
         )}

@@ -19,6 +19,8 @@ export default function AppPage() {
   const [moleLoading, setMoleLoading] = useState(false);
   const [moleError, setMoleError] = useState(null);
   const [ships, setShips] = useState([]);
+  const [commits, setCommits] = useState([]);
+  const [commitsLoading, setCommitsLoading] = useState(true);
   const moleIntervalRef = useRef(null);
 
   useEffect(() => {
@@ -49,6 +51,29 @@ export default function AppPage() {
     };
 
     fetchDetails();
+  }, [contributor, app]);
+
+  useEffect(() => {
+    const fetchCommits = async () => {
+      if (!contributor || !app) return;
+      const appName = decodeURIComponent(app);
+      
+      try {
+        setCommitsLoading(true);
+        const response = await fetch(`/api/getNeighborCommits?slackId=${contributor}&appName=${encodeURIComponent(appName)}`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch commits');
+        }
+        const data = await response.json();
+        setCommits(data.commits || []);
+      } catch (err) {
+        console.error('Error fetching commits:', err);
+      } finally {
+        setCommitsLoading(false);
+      }
+    };
+    
+    fetchCommits();
   }, [contributor, app]);
 
   useEffect(() => {
@@ -328,6 +353,9 @@ export default function AppPage() {
             ) : (
               <p>No hackatime projects found for this user and app.</p>
             )}
+
+
+
             <h2>Devlogs</h2>
             {(posts.length > 0 || ships.length > 0) ? (
               <ul>
@@ -451,6 +479,48 @@ export default function AppPage() {
               </ul>
             ) : (
               <p>No devlogs or ships found for this user and app.</p>
+            )}
+
+<h2>Stopwatch Sessions</h2>
+            {commitsLoading ? (
+              <p>Loading stopwatch sessions...</p>
+            ) : commits.length > 0 ? (
+              <>
+                {(() => {
+                  // Calculate total duration from all commits
+                  const totalMinutes = commits.reduce((total, commit) => total + (commit.duration[0] || 0), 0);
+                  const totalHours = (totalMinutes / 60).toFixed(1);
+                  
+                  return (
+                    <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px', marginBottom: '16px' }}>
+                      This user logged <strong>{totalHours} hours</strong> in stopwatch which is subject to scrutiny and may not be approved
+                    </p>
+                  );
+                })()}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {commits.map(commit => (
+                    <div key={commit.commitId} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {commit.videoLink && (
+                        <div>
+                          <video 
+                            controls 
+                            src={commit.videoLink} 
+                            style={{ maxWidth: 175, maxHeight: '300px' }}
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <p style={{ margin: '4px 0' }}>{commit.message}</p>
+                        <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#666' }}>
+                          {new Date(commit.commitTime).toLocaleString()} • {commit.duration} minutes
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p>No stopwatch sessions found</p>
             )}
           </>
         )}

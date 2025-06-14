@@ -115,7 +115,7 @@ export default function ContributorPage() {
           <>
             <h1>{data.neighbor.fullName || data.neighbor.slackFullName || "unnamed"}</h1>
 
-            <p>Hackatime Hours: {data.neighbor.totalTimeCombinedHours}hr</p>
+            <p>Hackatime Hours: {data.neighbor.totalTimeHackatimeHours}hr</p>
 
             <div style={{ marginBottom: '1rem' }}>
               <p>Weighted Grants Earned: 
@@ -173,6 +173,41 @@ export default function ContributorPage() {
               </ol>
             ) : (
               <p>No apps yet</p>
+            )}
+            
+            <h2>Stopwatch Sessions</h2>
+            {commitsLoading ? (
+              <p>Loading stopwatch sessions...</p>
+            ) : commits.length > 0 ? (
+              <>
+                <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px', marginBottom: '16px' }}>
+                  These hours were logged with the Stopwatch which is subject to scrutiny and may not be approved
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {commits.map(commit => (
+                    <div key={commit.commitId} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {commit.videoLink && (
+                        <div>
+                          <video 
+                            controls 
+                            src={commit.videoLink} 
+                            style={{ maxWidth: '100%', maxHeight: '300px' }}
+                          />
+                        </div>
+                      )}
+                      <div>
+                        <p style={{ margin: '4px 0' }}>{commit.message}</p>
+                        <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#666' }}>
+                          {commit.appName && <span style={{ fontWeight: 'bold' }}>{commit.appName} • </span>}
+                          {new Date(commit.commitTime).toLocaleString()} • {commit.duration} minutes
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p>No stopwatch sessions found</p>
             )}
           </>
         )}

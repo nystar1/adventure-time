@@ -178,7 +178,7 @@ export default function ContributorPage() {
               <p>No apps yet</p>
             )}
             
-            <h2>Stopwatch Sessions</h2>
+            {/* <h2>Stopwatch Sessions</h2>
             {commitsLoading ? (
               <p>Loading stopwatch sessions...</p>
             ) : commits.length > 0 ? (
@@ -211,7 +211,7 @@ export default function ContributorPage() {
               </>
             ) : (
               <p>No stopwatch sessions found</p>
-            )}
+            )} */}
           </>
         )}
       </div>

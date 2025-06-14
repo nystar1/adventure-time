@@ -493,7 +493,7 @@ export default function AppPage() {
                   
                   return (
                     <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px', marginBottom: '16px' }}>
-                      This user logged <strong>{totalHours} hours</strong> in stopwatch which is subject to scrutiny and may not be approved
+                      This user logged <strong>{totalHours} hours</strong> in stopwatch which is subject to scrutiny and may or may not be approved (up to reviewer)
                     </p>
                   );
                 })()}

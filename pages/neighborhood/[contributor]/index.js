@@ -74,7 +74,6 @@ export default function ContributorPage() {
           setAppHours((prev) => ({ ...prev, [app.name]: { loading: false, hours: 0 } }));
         });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data?.apps]);
 
   const contributorPfp = data?.neighbor?.pfp;
@@ -115,22 +114,20 @@ export default function ContributorPage() {
         {!loading && !error && data && (
           <>
             <h1>{data.neighbor.fullName || data.neighbor.slackFullName || "unnamed"}</h1>
-            
 
-
-            <p>Hackatime Hours: {data.neighbor.totalTimeHackatimeHours}hr</p>
+            <p>Hackatime Hours: {data.neighbor.totalTimeCombinedHours}hr</p>
 
             <div style={{ marginBottom: '1rem' }}>
               <p>Weighted Grants Earned: 
                 {[...Array(10)].map((_, index) => {
                   const fullGrants = Math.floor(numberOfWeightedGrants);
                   const decimalPart = numberOfWeightedGrants - fullGrants;
-                  let opacity = 0.1; // default opacity for unfilled coins
+                  let opacity = 0.1;
                   
                   if (index < fullGrants) {
-                    opacity = 1; // fully filled coins
+                    opacity = 1;
                   } else if (index === fullGrants && decimalPart > 0) {
-                    opacity = 0.1 + (decimalPart * 0.9); // partial opacity for the next coin
+                    opacity = 0.1 + (decimalPart * 0.9);
                   }
                   
                   return (
@@ -177,44 +174,9 @@ export default function ContributorPage() {
             ) : (
               <p>No apps yet</p>
             )}
-            
-            {/* <h2>Stopwatch Sessions</h2>
-            {commitsLoading ? (
-              <p>Loading stopwatch sessions...</p>
-            ) : commits.length > 0 ? (
-              <>
-                <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px', marginBottom: '16px' }}>
-                  These hours were logged with the Stopwatch which is subject to scrutiny and may not be approved
-                </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {commits.map(commit => (
-                    <div key={commit.commitId} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {commit.videoLink && (
-                        <div>
-                          <video 
-                            controls 
-                            src={commit.videoLink} 
-                            style={{ maxWidth: '100%', maxHeight: '300px' }}
-                          />
-                        </div>
-                      )}
-                      <div>
-                        <p style={{ margin: '4px 0' }}>{commit.message}</p>
-                        <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#666' }}>
-                          {commit.appName && <span style={{ fontWeight: 'bold' }}>{commit.appName} • </span>}
-                          {new Date(commit.commitTime).toLocaleString()} • {commit.duration} minutes
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <p>No stopwatch sessions found</p>
-            )} */}
           </>
         )}
       </div>
     </>
   );
-} 
+}

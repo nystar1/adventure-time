@@ -1,9 +1,9 @@
 import Head from "next/head";
 import Breadcrumbs from "@/components/Breadcrumbs";
 import { Canvas, useLoader, useFrame } from "@react-three/fiber";
-import { OrbitControls, Sphere } from "@react-three/drei";
+import { OrbitControls, Sphere, Line } from "@react-three/drei";
 import { EffectComposer, Pixelation } from "@react-three/postprocessing";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, createRef } from "react";
 import * as THREE from "three";
 import { useRouter } from "next/router";
 
@@ -108,6 +108,110 @@ function BlinkingDot({ position, onClick, interactive, color = "red" }) {
   );
 }
 
+function LinesToSFO({ neighbors, airportsData }) {
+  // SFO coordinates: 37.6191° N, 122.3816° W
+  const sfoPosition = latLonToVec3(37.6191, -122.3816);
+  const [arcPaths, setArcPaths] = useState([]);
+  const lineRefs = useRef([]);
+  
+  useEffect(() => {
+    if (!neighbors.length || !Object.keys(airportsData).length) return;
+    
+    // Find all neighbors with isIRL=true
+    const irlNeighbors = neighbors.filter(n => n.isIRL && n.airport);
+    
+    // Generate arc paths for all IRL neighbors
+    const paths = [];
+    
+    irlNeighbors.forEach(neighbor => {
+      const code = neighbor.airport.toUpperCase();
+      const airport = Object.values(airportsData).find(
+        a => a.iata?.toUpperCase() === code || a.icao?.toUpperCase() === code
+      );
+      
+      if (airport && airport.lat && airport.lon) {
+        const startPosition = latLonToVec3(Number(airport.lat), Number(airport.lon));
+        
+        // Create arc path between the two points
+        const path = createArcPath(
+          new THREE.Vector3(...startPosition),
+          new THREE.Vector3(...sfoPosition),
+          20 // number of points in the arc
+        );
+        
+        paths.push(path);
+      }
+    });
+    
+    setArcPaths(paths);
+    // Initialize refs array with the correct length
+    lineRefs.current = paths.map(() => createRef());
+  }, [neighbors, airportsData]);
+  
+  // Helper function to create an arc path along the sphere surface
+  const createArcPath = (start, end, numPoints) => {
+    const points = [];
+    
+    // Get the normalized vectors (points on unit sphere)
+    const startNorm = start.clone().normalize();
+    const endNorm = end.clone().normalize();
+    
+    // Calculate the angle between the two points
+    const angle = startNorm.angleTo(endNorm);
+    
+    // Create an axis of rotation perpendicular to both points
+    const axis = new THREE.Vector3().crossVectors(startNorm, endNorm).normalize();
+    
+    // Create points along the great circle arc
+    for (let i = 0; i <= numPoints; i++) {
+      const t = i / numPoints;
+      
+      // Create a quaternion for rotation along the great circle
+      const q = new THREE.Quaternion().setFromAxisAngle(axis, angle * t);
+      
+      // Apply the rotation to the start point
+      const point = startNorm.clone()
+        .applyQuaternion(q)
+        .multiplyScalar(1.001); // Slightly above surface
+      
+      points.push(point);
+    }
+    
+    return points;
+  };
+  
+  // Animation for the dotted linesxf
+  useFrame(({ clock }) => {
+    const t = clock.getElapsedTime();
+    lineRefs.current.forEach((ref) => {
+      if (ref.current && ref.current.material) {
+        // Animate the dash offset to create movement at 3x the rate
+        ref.current.material.dashOffset = -t * 0.5; // Increased from 0.5 to 1.5 (3x faster)
+      }
+    });
+  });
+  
+  return (
+    <>
+      {arcPaths.map((points, index) => (
+        <Line
+          key={index}
+          ref={lineRefs.current[index]}
+          points={points}
+          color="#9932CC" // Purple color for IRL users
+          lineWidth={1.5}
+          transparent
+          opacity={0.8}
+          dashed={true}
+          dashSize={0.05}
+          dashScale={1}
+          dashOffset={0}
+        />
+      ))}
+    </>
+  );
+}
+
 function AirportDots({ neighbors, airportsData }) {
   const router = useRouter();
   
@@ -166,11 +270,13 @@ function AirportDots({ neighbors, airportsData }) {
         onClick={() => router.push(`/neighborhood/${neighbor.slackId}`)}
         interactive={true}
         color={
-          neighbor.approvedFlightStipend 
-            ? "#00ff00" 
-            : neighbor.totalTimeHackatimeHours >= 100 
-              ? "#ffff00" 
-              : "red"
+          neighbor.isIRL 
+            ? "#9932CC" // Purple for IRL users
+            : neighbor.approvedFlightStipend 
+              ? "#00ff00" 
+              : neighbor.totalTimeHackatimeHours >= 100 
+                ? "#ffff00" 
+                : "red"
         }
       />
     ));
@@ -238,6 +344,7 @@ export default function GlobePage() {
               <GlobeOutline />
               <Globe globeRef={globeRef} />
               <AirportDots neighbors={neighbors} airportsData={airportsData} />
+              <LinesToSFO neighbors={neighbors} airportsData={airportsData} />
               <OrbitControls 
                 enableZoom={true}
                 enablePan={false}

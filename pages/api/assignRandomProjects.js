@@ -51,7 +51,7 @@ export default async function handler(req, res) {
           "Name", 
           "Neighbors", 
           "playableURL", 
-          "YSWS Project Submission-Status"
+          "YSWS Project Submission–Status"
         ]
       })
       .all();
@@ -60,7 +60,7 @@ export default async function handler(req, res) {
       name: record.fields["Name"] || null,
       neighborIds: record.fields["Neighbors"] || [],
       playableURL: record.fields["playableURL"] || null,
-      yswsSubmissionStatus: record.fields["YSWS Project Submission-Status"] || null
+      yswsSubmissionStatus: record.fields["YSWS Project Submission–Status"] || null
     }));
     console.log(`Fetched ${apps.length} apps.`);
 
@@ -151,6 +151,12 @@ export default async function handler(req, res) {
         console.log(`  No qualifying assignments for reviewer ${reviewer.fullName || reviewer.slackId}`);
       }
     }
+    res.status(200).json({ 
+      message: 'Random projects assigned successfully', 
+      created: created.length,
+      reviewers: eligibleReviewers.length,
+      apps: eligibleApps.length
+    });
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ message: 'An error occurred' });

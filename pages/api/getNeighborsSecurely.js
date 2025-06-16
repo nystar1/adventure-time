@@ -37,7 +37,8 @@ export default async function handler(req, res) {
           "move-in-date",
           "gavefeedback",
           "starAvg",
-          "hideJakeTheDog"
+          "hideJakeTheDog",
+          "isIRL"
         ],
         filterByFormula: filterFormula
       })
@@ -59,7 +60,8 @@ export default async function handler(req, res) {
       moveInDate: record.fields["move-in-date"] || null,
       gaveFeedback: record.fields.gavefeedback || false,
       starAvg: Number(record.fields.starAvg) || 0,
-      hideJakeTheDog: record.fields.hideJakeTheDog || false
+      hideJakeTheDog: record.fields.hideJakeTheDog || false,
+      isIRL: record.fields.isIRL || false
     }));
 
     return res.status(200).json({ neighbors });

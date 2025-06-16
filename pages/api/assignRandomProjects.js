@@ -20,7 +20,9 @@ export default async function handler(req, res) {
           "Slack ID (from slackNeighbor)",
           "Full Name (from slackNeighbor)",
           "Apps",
-          "totalTimeHackatimeHours"
+          "totalTimeHackatimeHours",
+          "yswsProjectSubmittedAt",
+          "hideJakeTheDog"
         ]
       })
       .all();
@@ -29,13 +31,18 @@ export default async function handler(req, res) {
       slackId: record.fields["Slack ID (from slackNeighbor)"] || null,
       fullName: record.fields["Full Name (from slackNeighbor)"] || null,
       appIds: record.fields["Apps"] || [],
-      totalTimeHackatimeHours: record.fields["totalTimeHackatimeHours"] || 0
+      totalTimeHackatimeHours: record.fields["totalTimeHackatimeHours"] || 0,
+      yswsProjectSubmittedAt: record.fields["yswsProjectSubmittedAt"] || null,
+      hideJakeTheDog: record.fields["hideJakeTheDog"] || false
     }));
     console.log(`Fetched ${neighbors.length} neighbors.`);
 
-    // Only assign to users with >1 hour logged in hackatime
-    const eligibleReviewers = neighbors.filter(n => n.totalTimeHackatimeHours > 1);
-    console.log(`Filtered to ${eligibleReviewers.length} eligible reviewers with >1hr logged.`);
+    // Only assign to users with >1 hour logged in hackatime and who haven't opted out
+    const eligibleReviewers = neighbors.filter(n => 
+      n.totalTimeHackatimeHours > 1 && 
+      !n.hideJakeTheDog
+    );
+    console.log(`Filtered to ${eligibleReviewers.length} eligible reviewers with >1hr logged and not opted out.`);
 
     console.log('Fetching all apps...');
     const appRecords = await base("Apps")
@@ -72,10 +79,13 @@ export default async function handler(req, res) {
           const owner = neighbors.find(n => n.id === ownerId);
           if (!owner) return false;
           console.log(`    Considering owner ${owner.fullName || owner.slackId} (${owner.id}) with ${owner.totalTimeHackatimeHours}hr`);
-          return owner.totalTimeHackatimeHours > 50;
+          return owner.totalTimeHackatimeHours > 50 && 
+                 owner.yswsProjectSubmittedAt && 
+                 owner.yswsProjectSubmittedAt !== "" && 
+                 !owner.hideJakeTheDog;
         });
         if (eligibleOwners.length === 0) {
-          console.log(`  Skipping app '${app.name}' (no owners with >50hr)`);
+          console.log(`  Skipping app '${app.name}' (no owners with >50hr or missing project submission or opted out)`);
           continue;
         }
         // Pick a random eligible owner

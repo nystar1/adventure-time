@@ -47,22 +47,36 @@ export default async function handler(req, res) {
     console.log('Fetching all apps...');
     const appRecords = await base("Apps")
       .select({
-        fields: ["Name", "Neighbors"]
+        fields: [
+          "Name", 
+          "Neighbors", 
+          "playableURL", 
+          "YSWS Project Submission-Status"
+        ]
       })
       .all();
     const apps = appRecords.map(record => ({
       id: record.id,
       name: record.fields["Name"] || null,
-      neighborIds: record.fields["Neighbors"] || []
+      neighborIds: record.fields["Neighbors"] || [],
+      playableURL: record.fields["playableURL"] || null,
+      yswsSubmissionStatus: record.fields["YSWS Project Submission-Status"] || null
     }));
     console.log(`Fetched ${apps.length} apps.`);
+
+    // Filter apps to only include those with playableURL and YSWS submission status
+    const eligibleApps = apps.filter(app => 
+      app.playableURL && 
+      app.yswsSubmissionStatus
+    );
+    console.log(`Filtered to ${eligibleApps.length} eligible apps with playableURL and YSWS submission status.`);
 
     const created = [];
     for (const reviewer of eligibleReviewers) {
       console.log(`\nProcessing reviewer: ${reviewer.fullName || reviewer.slackId} (${reviewer.id})`);
       // Build a pool of all qualifying (app, owner) pairs not by this reviewer
       const pool = [];
-      for (const app of apps) {
+      for (const app of eligibleApps) {
         // Exclude apps the reviewer is a member of
         if (app.neighborIds.includes(reviewer.id)) {
           console.log(`  Skipping app '${app.name}' for reviewer (is a member)`);

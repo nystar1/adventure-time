@@ -48,9 +48,13 @@ export default function InPersonLeaderboard() {
   const getWeekRange = () => {
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    // 1 for Monday, 0 for Sunday, so we need to adjust
+    const dayOfWeek = startOfWeek.getDay();
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday
+    
+    startOfWeek.setDate(now.getDate() + diff); // Start of week (Monday)
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Sunday)
     
     return `${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}`;
   };

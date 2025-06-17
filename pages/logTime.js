@@ -128,19 +128,17 @@ export default function LogTime() {
       return;
     }
     try {
-      const response = await fetch('https://hackatime.hackclub.com/api/hackatime/v1/users/current/heartbeats', {
+      const response = await fetch('/api/heartbeats', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ab030478-0a06-419c-a076-9ee6886d16e0`,
-          'User-Agent': 'Adventure Time/1.0',
         },
         body: JSON.stringify({
           entity: projectName,
           type: 'file',
-          time: Math.floor(Date.now() / 1000),
           project: projectName,
-          language: language,
+          language: language || 'JavaScript',
+          hackatimeToken: apiKey,
           is_write: true,
         }),
       });
@@ -171,7 +169,8 @@ export default function LogTime() {
         body: JSON.stringify({
           entity: project.name,
           project: project.name,
-          language: 'JavaScript',
+          language: language || 'JavaScript',
+          hackatimeToken: apiKey,
         }),
       });
       const rawResponse = await response.text();

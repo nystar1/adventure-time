@@ -54,6 +54,19 @@ export default function StarChart() {
     return { slope, intercept };
   };
 
+  // Function to get dot color based on neighbor properties (matching globe.js)
+  const getDotColor = (neighbor) => {
+    if (neighbor.isIRL) {
+      return '#9932CC'; // Purple for IRL users
+    } else if (neighbor.approvedFlightStipend) {
+      return '#00ff00'; // Green for approved flight stipends
+    } else if (neighbor.totalTimeHackatimeHours >= 100) {
+      return '#ffff00'; // Yellow for 100+ hours
+    } else {
+      return '#ff0000'; // Red for others
+    }
+  };
+
   useEffect(() => {
     if (loading || !neighbors.length || !canvasRef.current) return;
     
@@ -169,7 +182,7 @@ export default function StarChart() {
       
       ctx.beginPath();
       ctx.arc(x, y, 6, 0, Math.PI * 2);
-      ctx.fillStyle = hoveredNeighbor === neighbor ? '#ff6b6b' : '#3498db';
+      ctx.fillStyle = hoveredNeighbor === neighbor ? '#ff6b6b' : getDotColor(neighbor);
       ctx.fill();
       
       // Store position for interaction
@@ -232,6 +245,24 @@ export default function StarChart() {
       const sign = regression.intercept >= 0 ? '+' : '';
       ctx.fillText(`y = ${slopeFormatted}x ${sign} ${interceptFormatted}`, padding + chartWidth - 120, padding + 38);
     }
+    
+    // Add a legend for dot colors
+    const legendY = padding + 60;
+    const legendItems = [
+      { color: '#9932CC', label: 'IRL Users' },
+      { color: '#00ff00', label: 'Approved Flight Stipend' },
+      { color: '#ffff00', label: 'Over 100 Hours' },
+      { color: '#ff0000', label: 'Others' }
+    ];
+    
+    legendItems.forEach((item, i) => {
+      const itemY = legendY + i * 20;
+      ctx.fillStyle = item.color;
+      ctx.fillRect(padding + chartWidth - 120, itemY, 10, 10);
+      ctx.fillStyle = '#333';
+      ctx.textAlign = 'left';
+      ctx.fillText(item.label, padding + chartWidth - 105, itemY + 8);
+    });
     
     // Handle mouse interactions
     const handleMouseMove = (e) => {

@@ -8,7 +8,7 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer insertToken`,
+        'Authorization': `Bearer ${req.body.hackatimeToken}`,
         'User-Agent': 'Adventure Time/1.0',
       },
       body: JSON.stringify({

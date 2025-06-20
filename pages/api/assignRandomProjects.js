@@ -22,7 +22,8 @@ export default async function handler(req, res) {
           "Apps",
           "totalTimeHackatimeHours",
           "yswsProjectSubmittedAt",
-          "hideJakeTheDog"
+          "hideJakeTheDog",
+          "isIRL"
         ]
       })
       .all();
@@ -33,7 +34,8 @@ export default async function handler(req, res) {
       appIds: record.fields["Apps"] || [],
       totalTimeHackatimeHours: record.fields["totalTimeHackatimeHours"] || 0,
       yswsProjectSubmittedAt: record.fields["yswsProjectSubmittedAt"] || null,
-      hideJakeTheDog: record.fields["hideJakeTheDog"] || false
+      hideJakeTheDog: record.fields["hideJakeTheDog"] || false,
+      isIRL: record.fields["isIRL"] || false
     }));
     console.log(`Fetched ${neighbors.length} neighbors.`);
 
@@ -71,12 +73,28 @@ export default async function handler(req, res) {
     );
     console.log(`Filtered to ${eligibleApps.length} eligible apps with playableURL and YSWS submission status.`);
 
+    // Identify apps from IRL neighbors
+    const irlNeighborIds = neighbors.filter(n => n.isIRL).map(n => n.id);
+    console.log(`Found ${irlNeighborIds.length} IRL neighbors.`);
+    
+    const irlApps = eligibleApps.filter(app => 
+      app.neighborIds.some(neighborId => irlNeighborIds.includes(neighborId))
+    );
+    console.log(`Found ${irlApps.length} apps from IRL neighbors.`);
+
     const created = [];
     for (const reviewer of eligibleReviewers) {
       console.log(`\nProcessing reviewer: ${reviewer.fullName || reviewer.slackId} (${reviewer.id})`);
+      
+      // First prioritize apps from IRL neighbors, then fallback to any eligible app
+      let priorityApps = irlApps;
+      let fallbackApps = eligibleApps.filter(app => !irlApps.includes(app));
+      
       // Build a pool of all qualifying (app, owner) pairs not by this reviewer
       const pool = [];
-      for (const app of eligibleApps) {
+      
+      // Process priority apps first (IRL neighbors' apps)
+      for (const app of priorityApps) {
         // Exclude apps the reviewer is a member of
         if (app.neighborIds.includes(reviewer.id)) {
           console.log(`  Skipping app '${app.name}' for reviewer (is a member)`);
@@ -108,15 +126,58 @@ export default async function handler(req, res) {
           reviewerId: reviewer.id,
           reviewedNeighborId: ownerId,
           reviewedAppId: app.id,
-          appName: app.name
+          appName: app.name,
+          isIRLApp: true
         });
-        console.log(`    Added to pool: reviewer=${reviewer.fullName || reviewer.slackId} app='${app.name}' ownerId=${ownerId}`);
+        console.log(`    Added to pool (IRL): reviewer=${reviewer.fullName || reviewer.slackId} app='${app.name}' ownerId=${ownerId}`);
       }
+      
+      // If we don't have enough IRL apps, add non-IRL apps as fallback
+      if (pool.length < 5) {
+        for (const app of fallbackApps) {
+          // Exclude apps the reviewer is a member of
+          if (app.neighborIds.includes(reviewer.id)) {
+            continue;
+          }
+          // Only consider apps with at least one member (owner)
+          const possibleOwners = app.neighborIds.filter(ownerId => ownerId !== reviewer.id);
+          if (possibleOwners.length === 0) {
+            continue;
+          }
+          // Filter owners to those with >50 hours
+          const eligibleOwners = possibleOwners.filter(ownerId => {
+            const owner = neighbors.find(n => n.id === ownerId);
+            if (!owner) return false;
+            return owner.totalTimeHackatimeHours > 50 && 
+                   owner.yswsProjectSubmittedAt && 
+                   owner.yswsProjectSubmittedAt !== "" && 
+                   !owner.hideJakeTheDog;
+          });
+          if (eligibleOwners.length === 0) {
+            continue;
+          }
+          // Pick a random eligible owner
+          const ownerId = eligibleOwners[Math.floor(Math.random() * eligibleOwners.length)];
+          pool.push({
+            reviewerId: reviewer.id,
+            reviewedNeighborId: ownerId,
+            reviewedAppId: app.id,
+            appName: app.name,
+            isIRLApp: false
+          });
+          console.log(`    Added to pool (non-IRL fallback): reviewer=${reviewer.fullName || reviewer.slackId} app='${app.name}' ownerId=${ownerId}`);
+        }
+      }
+      
       // Shuffle pool
       for (let i = pool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [pool[i], pool[j]] = [pool[j], pool[i]];
       }
+      
+      // Sort the pool to prioritize IRL apps
+      pool.sort((a, b) => (b.isIRLApp ? 1 : 0) - (a.isIRLApp ? 1 : 0));
+      
       // Assign up to 5 unique (owner/app) pairs
       const seen = new Set();
       let count = 0;
@@ -124,7 +185,7 @@ export default async function handler(req, res) {
         const key = item.reviewedNeighborId + '|' + item.reviewedAppId;
         if (!seen.has(key)) {
           try {
-            console.log(`  Creating ReviewAssignment: reviewer=${item.reviewerId}, reviewedNeighbor=${item.reviewedNeighborId}, app='${item.appName}' (${item.reviewedAppId})`);
+            console.log(`  Creating ReviewAssignment: reviewer=${item.reviewerId}, reviewedNeighbor=${item.reviewedNeighborId}, app='${item.appName}' (${item.reviewedAppId}), isIRLApp=${item.isIRLApp}`);
             const record = await base('ReviewAssignment').create({
               reviewer: [item.reviewerId],
               reviewedNeighbor: [item.reviewedNeighborId],
@@ -155,7 +216,8 @@ export default async function handler(req, res) {
       message: 'Random projects assigned successfully', 
       created: created.length,
       reviewers: eligibleReviewers.length,
-      apps: eligibleApps.length
+      apps: eligibleApps.length,
+      irlApps: irlApps.length
     });
   } catch (error) {
     console.error('Error:', error);

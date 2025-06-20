@@ -76,7 +76,7 @@ export default function LogTime() {
       if (project) {
         heartbeatInterval = setInterval(() => {
           sendHeartbeat(project.name);
-        }, 10000);
+        }, 2000);
       }
     }
     return () => clearInterval(heartbeatInterval);
@@ -136,6 +136,7 @@ export default function LogTime() {
         body: JSON.stringify({
           entity: projectName,
           type: 'file',
+          time: Math.floor(Date.now() / 1000),
           project: projectName,
           language: language || 'JavaScript',
           hackatimeToken: apiKey,
@@ -153,6 +154,10 @@ export default function LogTime() {
   const testHeartbeat = async () => {
     if (!selectedProject) {
       alert('Please select a project first');
+      return;
+    }
+    if (!apiKey) {
+      alert('Please enter your Hackatime API key');
       return;
     }
     const project = projects.find(p => p.id === selectedProject);

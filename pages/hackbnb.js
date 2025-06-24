@@ -5,12 +5,17 @@ export default function HackBnB() {
   const [hasToken, setHasToken] = useState(false);
   const [pfp, setPfp] = useState(null);
   const [houses, setHouses] = useState([]);
+  const [token, setToken] = useState('');
   const router = useRouter();
 
   const [viewMode, setViewMode] = useState("listings");
   const [arrivalDate, setArrivalDate] = useState("");
   const [exitDate, setExitDate] = useState("");
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [hasFlight, setHasFlight] = useState(false);
+  const [selectedHouse, setSelectedHouse] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
 
   // Calendar data for June 23 - Aug 30, 2025
   const calendarData = {
@@ -24,15 +29,16 @@ export default function HackBnB() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    if (!token) {
+    const storedToken = localStorage.getItem('authToken');
+    if (!storedToken) {
       // Save intended page and redirect to login
       localStorage.setItem('redirectAfterLogin', '/hackbnb');
       router.replace('/login');
       return;
     }
+    setToken(storedToken);
     setHasToken(true);
-    fetchPfp(token);
+    fetchPfp(storedToken);
     fetchHouses();
   }, []);
 
@@ -62,6 +68,9 @@ export default function HackBnB() {
       }
       const data = await response.json();
       setHouses(data.houses || []);
+      if (data.houses && data.houses.length > 0) {
+        setSelectedHouse(data.houses[0].id);
+      }
     } catch (err) {
       console.error('Error fetching houses:', err);
     }
@@ -69,6 +78,106 @@ export default function HackBnB() {
 
   const handleDateClick = (date) => {
     setSelectedDate(date);
+  };
+
+  // Format date to YYYY-MM-DD without timezone offset issues
+  const formatDateForAPI = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Parse date from input field (YYYY-MM-DD) to JS Date object
+  const parseInputDate = (dateString) => {
+    if (!dateString) return null;
+    // Split by "-" to get year, month, day and create a date
+    // This avoids timezone issues by explicitly setting the parts
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const handleSubmitBooking = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError(null);
+    
+    try {
+      // Parse dates from input fields
+      const arrivalDateObj = parseInputDate(arrivalDate);
+      const exitDateObj = parseInputDate(exitDate);
+      
+      // Format dates for API to avoid timezone issues
+      const formattedArrivalDate = formatDateForAPI(arrivalDateObj);
+      const formattedExitDate = formatDateForAPI(exitDateObj);
+      
+      const response = await fetch('/api/createStay', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          token,
+          houseId: selectedHouse,
+          arrivalDate: formattedArrivalDate,
+          exitDate: formattedExitDate,
+          hasFlight
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit booking request');
+      }
+      
+      // Show different message based on whether the stay was created or updated
+      const action = data.action === 'created' ? 'submitted' : 'updated';
+      alert(`Booking request ${action} successfully!`);
+      setViewMode('listings');
+      
+      // Refresh the page to update the listings with the new/updated booking
+      window.location.reload();
+    } catch (error) {
+      console.error('Error submitting booking:', error);
+      setSubmitError(error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Get stays for the selected date
+  const getStaysForDate = (house) => {
+    if (!house.stays || house.stays.length === 0) return [];
+    
+    return house.stays.filter(stay => {
+      if (!stay.start_date || !stay.end_date) return false;
+      
+      // Create dates without time components to avoid timezone issues
+      const startDate = parseInputDate(stay.start_date);
+      const endDate = parseInputDate(stay.end_date);
+      
+      // Create a date from selectedDate with just year, month, day components
+      const compareDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate()
+      );
+      
+      // Check if selectedDate is between start_date and end_date (inclusive)
+      return compareDate >= startDate && compareDate <= endDate;
+    });
+  };
+
+  // Get confirmed and pending stays
+  const getStaysByStatus = (house) => {
+    const staysForDate = getStaysForDate(house);
+    
+    return {
+      confirmed: staysForDate.filter(stay => stay.bookingStatus === "Confirmed"),
+      pending: staysForDate.filter(stay => stay.bookingStatus === "Pending")
+    };
   };
 
   // Generate calendar for a specific month
@@ -169,77 +278,197 @@ export default function HackBnB() {
           <p>Current stays for {selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
 
           <div style={{ display: 'flex', flexDirection: 'row', height: "100%" }}>
-          {houses.map((house, index) => (
-            <div key={house.id} style={{ 
-              width: '200px',
-              marginRight: index < houses.length - 1 ? '20px' : '0',
-              position: 'relative'
-            }}>
-              <div style={{ 
-                display: 'flex',
-                alignItems: 'center'
+            {houses.map((house, index) => (
+              <div key={house.id} style={{ 
+                width: '200px',
+                marginRight: index < houses.length - 1 ? '20px' : '0',
+                position: 'relative'
               }}>
                 <div style={{ 
-                  width: '24px', 
-                  height: '24px', 
-                  backgroundColor: '#9CA3AF',
-                  borderRadius: '4px',
-                  border: '2px solid #fff',
-                  boxShadow: '0 0 0 1px #ccc',
-                  overflow: 'hidden',
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  alignItems: 'center'
                 }}>
-                  {house.thumbnail && house.thumbnail.length > 0 && (
-                    <img 
-                      src={house.thumbnail[0].thumbnails?.small?.url || house.thumbnail[0].url} 
-                      alt={house.name}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 0 }}
-                    />
-                  )}
+                  <div style={{ 
+                    width: '24px', 
+                    height: '24px', 
+                    backgroundColor: '#9CA3AF',
+                    borderRadius: '4px',
+                    border: '2px solid #fff',
+                    boxShadow: '0 0 0 1px #ccc',
+                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {house.thumbnail && house.thumbnail.length > 0 && (
+                      <img 
+                        src={house.thumbnail[0].thumbnails?.small?.url || house.thumbnail[0].url} 
+                        alt={house.name}
+                        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 0 }}
+                      />
+                    )}
+                  </div>
+                  <span style={{ marginLeft: '10px' }}>{house.name}</span>
                 </div>
-                <span style={{ marginLeft: '10px' }}>{house.name}</span>
+                
+                <div style={{ marginTop: '10px', marginLeft: '10px' }}>
+                  {(() => {
+                    const { confirmed, pending } = getStaysByStatus(house);
+                    const hasStays = confirmed.length > 0 || pending.length > 0;
+                    
+                    if (!hasStays) {
+                      return <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>No guests</p>;
+                    }
+                    
+                    return (
+                      <>
+                        {confirmed.length > 0 && (
+                          <div style={{ marginBottom: '10px' }}>
+                            <p style={{ margin: '0 0 5px 0', fontWeight: '500', fontSize: '14px' }}>Roommates:</p>
+                            <ul style={{ margin: '0', paddingLeft: '20px' }}>
+                              {confirmed.map(stay => (
+                                <li key={stay.id} style={{ marginBottom: '5px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    {stay.pfp && stay.pfp.length > 0 && (
+                                      <div style={{ 
+                                        width: '16px', 
+                                        height: '16px', 
+                                        marginRight: '8px',
+                                        backgroundColor: '#9CA3AF',
+                                        borderRadius: '3px',
+                                        border: '1px solid #fff',
+                                        boxShadow: '0 0 0 1px #ccc',
+                                        overflow: 'hidden'
+                                      }}>
+                                        <img 
+                                          src={stay.pfp[0].thumbnails?.small?.url || stay.pfp[0].url} 
+                                          alt={stay.fullName}
+                                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                      </div>
+                                    )}
+                                    <span>{stay.fullName || stay.handle}</span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        
+                        {pending.length > 0 && (
+                          <div>
+                            <p style={{ margin: '0 0 5px 0', fontWeight: '500', fontSize: '14px' }}>Pending Bookings:</p>
+                            <ul style={{ margin: '0', paddingLeft: '20px' }}>
+                              {pending.map(stay => (
+                                <li key={stay.id} style={{ marginBottom: '5px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    {stay.pfp && stay.pfp.length > 0 && (
+                                      <div style={{ 
+                                        width: '16px', 
+                                        height: '16px', 
+                                        marginRight: '8px',
+                                        backgroundColor: '#9CA3AF',
+                                        borderRadius: '3px',
+                                        border: '1px solid #fff',
+                                        boxShadow: '0 0 0 1px #ccc',
+                                        overflow: 'hidden'
+                                      }}>
+                                        <img 
+                                          src={stay.pfp[0].thumbnails?.small?.url || stay.pfp[0].url} 
+                                          alt={stay.fullName}
+                                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                        />
+                                      </div>
+                                    )}
+                                    <span>
+                                      {stay.fullName || stay.handle}
+                                      {stay.hasFlight && <span style={{ marginLeft: '5px' }}>(✈️)</span>}
+                                    </span>
+                                  </div>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </div>
+                
+                {index < houses.length - 1 && (
+                  <div style={{ 
+                    position: 'absolute',
+                    right: '-10px',
+                    top: '0',
+                    bottom: '0',
+                    width: '1px',
+                    backgroundColor: '#ddd'
+                  }}></div>
+                )}
               </div>
-              {index < houses.length - 1 && (
-                <div style={{ 
-                  position: 'absolute',
-                  right: '-10px',
-                  top: '0',
-                  bottom: '0',
-                  width: '1px',
-                  backgroundColor: '#ddd'
-                }}></div>
-              )}
-            </div>
-          ))}
-          {houses.length === 0 && <p>Loading houses...</p>}
+            ))}
+            {houses.length === 0 && <p>Loading Houses</p>}
           </div>
         </div>
       </div>
       ) : (
       <div>
-        <p>Request your stay in Neighborhood</p>
-        <div style={{ marginTop: '20px' }}>
-          <div style={{ marginBottom: '15px' }}>
-            <label htmlFor="arrival-date" style={{ display: 'block', marginBottom: '5px' }}>Arrival Date:</label>
+        <h3>Request your stay in Neighborhood</h3>
+        <form onSubmit={handleSubmitBooking}>
+          <div>
+            <label htmlFor="house-select">Preferred House:</label>
+            <select 
+              id="house-select"
+              value={selectedHouse}
+              onChange={(e) => setSelectedHouse(e.target.value)}
+              required
+            >
+              <option value="" disabled>Select a house</option>
+              {houses.map(house => (
+                <option key={house.id} value={house.id}>{house.name}</option>
+              ))}
+            </select>
+          </div>
+          
+          <div>
+            <label htmlFor="arrival-date">Arrival Date:</label>
             <input 
               id="arrival-date"
               type="date" 
               value={arrivalDate} 
               onChange={(e) => setArrivalDate(e.target.value)}
+              required
             />
           </div>
-          <div style={{ marginBottom: '15px' }}>
-            <label htmlFor="exit-date" style={{ display: 'block', marginBottom: '5px' }}>Exit Date:</label>
+          
+          <div>
+            <label htmlFor="exit-date">Exit Date:</label>
             <input 
               id="exit-date"
               type="date" 
               value={exitDate} 
               onChange={(e) => setExitDate(e.target.value)}
+              required
             />
           </div>
-        </div>
+          
+          <div>
+            <label>
+              <input 
+                type="checkbox"
+                checked={hasFlight}
+                onChange={(e) => setHasFlight(e.target.checked)}
+              />
+              <span>I have a flight <i>(optional, not suggested before approval)</i></span>
+            </label>
+          </div>
+          
+          {submitError && <div style={{ color: 'red', margin: '10px 0' }}>{submitError}</div>}
+          
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Submitting...' : 'Submit Booking Request'}
+          </button>
+        </form>
       </div>
       )
     }

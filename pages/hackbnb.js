@@ -80,12 +80,38 @@ export default function HackBnB() {
     setSelectedDate(date);
   };
 
+  // Format date to YYYY-MM-DD without timezone offset issues
+  const formatDateForAPI = (date) => {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Parse date from input field (YYYY-MM-DD) to JS Date object
+  const parseInputDate = (dateString) => {
+    if (!dateString) return null;
+    // Split by "-" to get year, month, day and create a date
+    // This avoids timezone issues by explicitly setting the parts
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
   const handleSubmitBooking = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setSubmitError(null);
     
     try {
+      // Parse dates from input fields
+      const arrivalDateObj = parseInputDate(arrivalDate);
+      const exitDateObj = parseInputDate(exitDate);
+      
+      // Format dates for API to avoid timezone issues
+      const formattedArrivalDate = formatDateForAPI(arrivalDateObj);
+      const formattedExitDate = formatDateForAPI(exitDateObj);
+      
       const response = await fetch('/api/createStay', {
         method: 'POST',
         headers: {
@@ -94,8 +120,8 @@ export default function HackBnB() {
         body: JSON.stringify({
           token,
           houseId: selectedHouse,
-          arrivalDate,
-          exitDate,
+          arrivalDate: formattedArrivalDate,
+          exitDate: formattedExitDate,
           hasFlight
         }),
       });
@@ -128,11 +154,19 @@ export default function HackBnB() {
     return house.stays.filter(stay => {
       if (!stay.start_date || !stay.end_date) return false;
       
-      const startDate = new Date(stay.start_date);
-      const endDate = new Date(stay.end_date);
+      // Create dates without time components to avoid timezone issues
+      const startDate = parseInputDate(stay.start_date);
+      const endDate = parseInputDate(stay.end_date);
+      
+      // Create a date from selectedDate with just year, month, day components
+      const compareDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate()
+      );
       
       // Check if selectedDate is between start_date and end_date (inclusive)
-      return selectedDate >= startDate && selectedDate <= endDate;
+      return compareDate >= startDate && compareDate <= endDate;
     });
   };
 

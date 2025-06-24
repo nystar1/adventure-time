@@ -16,6 +16,8 @@ export default function HackBnB() {
   const [selectedHouse, setSelectedHouse] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [onlyCountFlights, setOnlyCountFlights] = useState(true);
+  const [onlyCountStipend, setOnlyCountStipend] = useState(false);
 
   // Calendar data for June 23 - Aug 30, 2025
   const calendarData = {
@@ -146,6 +148,61 @@ export default function HackBnB() {
     };
   };
 
+  // Calculate total over capacity for a specific date
+  const calculateTotalOverCapacity = (date) => {
+    let totalOverCapacity = 0;
+    
+    houses.forEach(house => {
+      if (!house.capacity) return;
+      
+      // Get stays for this specific date
+      const staysForDate = house.stays ? house.stays.filter(stay => {
+        if (!stay.start_date || !stay.end_date) return false;
+        
+        const startDate = new Date(stay.start_date);
+        const endDate = new Date(stay.end_date);
+        
+        // Check if date is between start_date and end_date (inclusive)
+        return date >= startDate && date <= endDate;
+      }) : [];
+      
+      // Calculate over capacity based on filters
+      const confirmedStays = staysForDate.filter(stay => stay.bookingStatus === "Confirmed");
+      const pendingStays = staysForDate.filter(stay => stay.bookingStatus === "Pending");
+      
+      // Apply filters to pending stays
+      let pendingStaysToCount = pendingStays;
+      
+      // Filter by flight status if enabled
+      if (onlyCountFlights) {
+        pendingStaysToCount = pendingStaysToCount.filter(stay => stay.hasFlight === true);
+      }
+      
+      // Filter by stipend approval if enabled
+      if (onlyCountStipend) {
+        pendingStaysToCount = pendingStaysToCount.filter(stay => stay.approvedForStipend === true);
+      }
+      
+      const totalCount = confirmedStays.length + pendingStaysToCount.length;
+      const overCapacity = totalCount - house.capacity;
+      
+      if (overCapacity > 0) {
+        totalOverCapacity += overCapacity;
+      }
+    });
+    
+    return totalOverCapacity;
+  };
+  
+  // Get color based on over capacity amount
+  const getOverCapacityColor = (overCapacity) => {
+    if (overCapacity <= 0) return 'transparent';
+    
+    // Calculate darkness - max darkness at 10 or more over capacity
+    const opacity = Math.min(0.9, 0.3 + (overCapacity * 0.06));
+    return `rgba(220, 38, 38, ${opacity})`;
+  };
+
   // Generate calendar for a specific month
   const renderCalendar = (month) => {
     const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
@@ -169,6 +226,10 @@ export default function HackBnB() {
         selectedDate.getDate() === i && 
         selectedDate.getMonth() === currentDate.getMonth() &&
         selectedDate.getFullYear() === currentDate.getFullYear();
+      
+      // Calculate over capacity for this date
+      const overCapacity = calculateTotalOverCapacity(currentDate);
+      const backgroundColor = isSelected ? '#000' : getOverCapacityColor(overCapacity);
         
       days.push(
         <div 
@@ -181,12 +242,24 @@ export default function HackBnB() {
             alignItems: 'center', 
             justifyContent: 'center',
             cursor: 'pointer',
-            backgroundColor: isSelected ? '#000' : 'transparent',
-            color: isSelected ? 'white' : 'black',
-            borderRadius: '2px'
+            backgroundColor: backgroundColor,
+            color: isSelected ? 'white' : overCapacity > 0 ? 'white' : 'black',
+            borderRadius: '2px',
+            position: 'relative'
           }}
         >
           {i}
+          {overCapacity > 0 && !isSelected && (
+            <div style={{
+              position: 'absolute',
+              bottom: '2px',
+              right: '2px',
+              fontSize: '7px',
+              fontWeight: 'bold'
+            }}>
+              +{overCapacity}
+            </div>
+          )}
         </div>
       );
     }
@@ -238,6 +311,38 @@ export default function HackBnB() {
     {viewMode === "listings" ? (
       <div style={{ display: 'flex', marginTop: '20px' }}>
         <div style={{ width: '200px', border: '1px solid #ddd', padding: '10px', borderRadius: '5px' }}>
+          <div style={{ marginBottom: '15px' }}>
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              fontSize: '12px',
+              cursor: 'pointer',
+              marginBottom: '8px'
+            }}>
+              <input 
+                type="checkbox" 
+                checked={onlyCountFlights} 
+                onChange={(e) => setOnlyCountFlights(e.target.checked)}
+                style={{ marginRight: '8px' }}
+              />
+              Capacity graph only considers those with flights
+            </label>
+            
+            <label style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}>
+              <input 
+                type="checkbox" 
+                checked={onlyCountStipend} 
+                onChange={(e) => setOnlyCountStipend(e.target.checked)}
+                style={{ marginRight: '8px' }}
+              />
+              Only show those approved for stipend
+            </label>
+          </div>
           {calendarData.months.map(month => renderCalendar(month))}
         </div>
         <div style={{ display: 'flex', marginLeft: '20px', flexDirection: 'column' }}>
@@ -274,7 +379,40 @@ export default function HackBnB() {
                       />
                     )}
                   </div>
-                  <span style={{ marginLeft: '10px' }}>{house.name}</span>
+                  <div style={{ marginLeft: '10px' }}>
+                    <span>{house.name}</span>
+                    {house.capacity && (
+                      <div style={{ fontSize: '12px', color: '#666' }}>
+                        {(() => {
+                          const { confirmed, pending } = getStaysByStatus(house);
+                          
+                          // Apply filters to pending stays
+                          let pendingToCount = pending;
+                          
+                          // Filter by flight status if enabled
+                          if (onlyCountFlights) {
+                            pendingToCount = pendingToCount.filter(stay => stay.hasFlight === true);
+                          }
+                          
+                          // Filter by stipend approval if enabled
+                          if (onlyCountStipend) {
+                            pendingToCount = pendingToCount.filter(stay => stay.approvedForStipend === true);
+                          }
+                          
+                          const totalOccupants = confirmed.length + pendingToCount.length;
+                          const overBy = totalOccupants - house.capacity;
+                          
+                          return (
+                            <>
+                              Capacity: {house.capacity}
+                              {overBy > 0 && <span style={{ color: '#e53e3e' }}> (over by {overBy})</span>}
+                              {overBy === 0 && totalOccupants > 0 && <span style={{ color: '#38a169' }}> (at capacity)</span>}
+                            </>
+                          );
+                        })()}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div style={{ marginTop: '10px', marginLeft: '10px' }}>

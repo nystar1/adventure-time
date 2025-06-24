@@ -9,7 +9,7 @@ export default async function handler(req, res) {
     console.log('Fetching houses from Houses table...');
     // Fetch houses from the Houses table
     const houseRecords = await base('Houses').select({
-      fields: ['Name', 'Thumbnail', 'stays']
+      fields: ['Name', 'Thumbnail', 'stays', 'capacity']
     }).firstPage();
     
     console.log(`Found ${houseRecords.length} houses`);
@@ -42,7 +42,8 @@ export default async function handler(req, res) {
             'fullName',
             'is_here',
             'bookingStatus',
-            'hasFlight'
+            'hasFlight',
+            'approvedForStipend'
           ]
         }).firstPage();
         
@@ -60,7 +61,8 @@ export default async function handler(req, res) {
             fullName: stay.fields.fullName || '',
             is_here: stay.fields.is_here || false,
             bookingStatus: stay.fields.bookingStatus || '',
-            hasFlight: stay.fields.hasFlight || false
+            hasFlight: stay.fields.hasFlight || false,
+            approvedForStipend: stay.fields.approvedForStipend || false
           };
           return acc;
         }, {});
@@ -79,6 +81,7 @@ export default async function handler(req, res) {
         id: record.id,
         name: record.fields.Name || '',
         thumbnail: record.fields.Thumbnail || null,
+        capacity: record.fields.capacity || null,
         stays: houseStays
       };
     });

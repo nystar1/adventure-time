@@ -78,7 +78,6 @@ export default async function handler(req, res) {
         bookingStatus: 'Pending',
         house: [houseId],
         neighbor: [neighborId],
-        SlackId: slackId
       });
       
       actionTaken = 'created';

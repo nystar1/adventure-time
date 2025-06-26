@@ -18,6 +18,7 @@ export default function HackBnB() {
   const [submitError, setSubmitError] = useState(null);
   const [onlyCountFlights, setOnlyCountFlights] = useState(true);
   const [onlyCountStipend, setOnlyCountStipend] = useState(false);
+  const [filterPendingWithUnder100Hours, setFilterPendingWithUnder100Hours] = useState(false);
 
   // Calendar data for June 23 - Aug 30, 2025
   const calendarData = {

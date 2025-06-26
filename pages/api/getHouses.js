@@ -4,13 +4,25 @@ const base = new Airtable({
   apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY,
 }).base(process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID);
 
+// Helper function to fetch all pages of records
+async function getAllRecords(query) {
+  let allRecords = [];
+  await query.eachPage((records, fetchNextPage) => {
+    allRecords = [...allRecords, ...records];
+    fetchNextPage();
+  });
+  return allRecords;
+}
+
 export default async function handler(req, res) {
   try {
     console.log('Fetching houses from Houses table...');
     // Fetch houses from the Houses table
-    const houseRecords = await base('Houses').select({
-      fields: ['Name', 'Thumbnail', 'stays', 'capacity']
-    }).firstPage();
+    const houseRecords = await getAllRecords(
+      base('Houses').select({
+        fields: ['Name', 'Thumbnail', 'stays', 'capacity']
+      })
+    );
     
     console.log(`Found ${houseRecords.length} houses`);
     
@@ -32,20 +44,23 @@ export default async function handler(req, res) {
         const filterFormula = `OR(${Array.from(stayIds).map(id => `RECORD_ID()='${id}'`).join(',')})`;
         console.log('Filter formula:', filterFormula);
         
-        const stayRecords = await base('stay').select({
-          filterByFormula: filterFormula,
-          fields: [
-            'start_date',
-            'end_date',
-            'Pfp',
-            'handle',
-            'fullName',
-            'is_here',
-            'bookingStatus',
-            'hasFlight',
-            'approvedForStipend'
-          ]
-        }).firstPage();
+        const stayRecords = await getAllRecords(
+          base('stay').select({
+            filterByFormula: filterFormula,
+            fields: [
+              'start_date',
+              'end_date',
+              'Pfp',
+              'handle',
+              'fullName',
+              'is_here',
+              'bookingStatus',
+              'hasFlight',
+              'approvedForStipend',
+              'totalTimeHackatimeHours'
+            ]
+          })
+        );
         
         console.log(`Found ${stayRecords.length} stay records`);
         
@@ -62,7 +77,8 @@ export default async function handler(req, res) {
             is_here: stay.fields.is_here || false,
             bookingStatus: stay.fields.bookingStatus || '',
             hasFlight: stay.fields.hasFlight || false,
-            approvedForStipend: stay.fields.approvedForStipend || false
+            approvedForStipend: stay.fields.approvedForStipend || false,
+            totalTimeHackatimeHours: stay.fields.totalTimeHackatimeHours || 0
           };
           return acc;
         }, {});

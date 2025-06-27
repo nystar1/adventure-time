@@ -46,23 +46,15 @@ export default async function handler(req, res) {
     const app = appRecords[0];
     const appId = app.id;
 
-    // Query hackatimeProjects where slackId matches
+    // Query hackatimeProjects where slackId matches AND the project is linked to this specific app
     const projects = await base("hackatimeProjects")
       .select({
-        filterByFormula: `{slackId} = '${slackId}'`
+        filterByFormula: `AND({slackId} = '${slackId}', FIND('${appId}', ARRAYJOIN({Apps})) > 0)`
       })
       .all();
 
-    // Filter projects for those where 'Name (from Apps)' includes the app name
-    const filtered = projects.filter(project => {
-      const namesFromApps = project.fields["Name (from Apps)"] || [];
-      return namesFromApps.some(
-        n => n && n === appNameLower
-      );
-    });
-
     // Format the results
-    const formatted = filtered.map(project => ({
+    const formatted = projects.map(project => ({
       id: project.id,
       name: project.fields.name || null,
       description: project.fields.description || null,

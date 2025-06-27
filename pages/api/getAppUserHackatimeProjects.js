@@ -46,10 +46,10 @@ export default async function handler(req, res) {
     const app = appRecords[0];
     const appId = app.id;
 
-    // Query hackatimeProjects where slackId matches
+    // Query hackatimeProjects where slackId matches and the app name matches
     const projects = await base("hackatimeProjects")
       .select({
-        filterByFormula: `AND({slackId} = '${slackId}', {appName} = '${appName}')`
+        filterByFormula: `AND({slackId} = '${slackId}', {Name (from Apps)} = '${appName}')`
       })
       .all();
 

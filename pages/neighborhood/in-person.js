@@ -5,28 +5,49 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 
 export default function InPersonLeaderboard() {
   const [neighbors, setNeighbors] = useState([]);
+  const [stopwatchData, setStopwatchData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortType, setSortType] = useState('largestLogged');
+  const [selectedUser, setSelectedUser] = useState(null);
 
   useEffect(() => {
-    const fetchNeighbors = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/getInPersonNeighbors');
-        if (!response.ok) {
+        setLoading(true);
+        // Fetch both regular in-person data and stopwatch data
+        const [neighborsResponse, stopwatchResponse] = await Promise.all([
+          fetch('/api/getInPersonNeighbors'),
+          fetch('/api/getWeeklyInPersonCommits')
+        ]);
+        
+        if (!neighborsResponse.ok) {
           throw new Error('Failed to fetch in-person neighbors');
         }
-        const data = await response.json();
-        setNeighbors(data.neighbors);
+        if (!stopwatchResponse.ok) {
+          throw new Error('Failed to fetch stopwatch data');
+        }
+        
+        const neighborsData = await neighborsResponse.json();
+        const stopwatchData = await stopwatchResponse.json();
+        
+        // Create a map of stopwatch data by slackId for easy lookup
+        const stopwatchMap = {};
+        stopwatchData.users.forEach(user => {
+          stopwatchMap[user.slackId] = user;
+        });
+        
+        setNeighbors(neighborsData.neighbors);
+        setStopwatchData(stopwatchMap);
       } catch (err) {
-        setError('Failed to load in-person neighbors');
-        console.error('Error fetching in-person neighbors:', err);
+        setError('Failed to load data: ' + err.message);
+        console.error('Error fetching data:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchNeighbors();
+    fetchData();
   }, []);
 
   const sortedNeighbors = [...neighbors].sort((a, b) => {
@@ -34,6 +55,14 @@ export default function InPersonLeaderboard() {
       return b.weeklyHours - a.weeklyHours;
     } else if (sortType === 'smallestLogged') {
       return a.weeklyHours - b.weeklyHours;
+    } else if (sortType === 'largestStopwatch') {
+      const aMinutes = stopwatchData[a.slackId]?.totalMinutes || 0;
+      const bMinutes = stopwatchData[b.slackId]?.totalMinutes || 0;
+      return bMinutes - aMinutes;
+    } else if (sortType === 'largestCombined') {
+      const aCombined = a.weeklyHours + ((stopwatchData[a.slackId]?.totalMinutes || 0) / 60);
+      const bCombined = b.weeklyHours + ((stopwatchData[b.slackId]?.totalMinutes || 0) / 60);
+      return bCombined - aCombined;
     }
     return 0;
   });
@@ -79,6 +108,8 @@ export default function InPersonLeaderboard() {
           >
             <option value="largestLogged">Most hours this week</option>
             <option value="smallestLogged">Least hours this week</option>
+            <option value="largestStopwatch">Most stopwatch hours</option>
+            <option value="largestCombined">Most combined hours</option>
           </select>
         </div>
         
@@ -91,14 +122,61 @@ export default function InPersonLeaderboard() {
               <p>No in-person neighbors found for this week.</p>
             ) : (
               <ol>
-                {sortedNeighbors.map((neighbor) => (
-                  <li key={neighbor.id}>
-                    <Link href={`/neighborhood/${neighbor.slackId}`}>
-                      {neighbor.fullName || neighbor.slackFullName || neighbor.slackId || "unnamed"}
-                    </Link>
-                    {" "}({neighbor.weeklyHours}hr this week)
-                  </li>
-                ))}
+                {sortedNeighbors.map((neighbor) => {
+                  const stopwatchMinutes = stopwatchData[neighbor.slackId]?.totalMinutes || 0;
+                  const stopwatchHours = (stopwatchMinutes / 60).toFixed(1);
+                  const combinedHours = (parseFloat(neighbor.weeklyHours) + parseFloat(stopwatchHours)).toFixed(1);
+                  
+                  return (
+                    <li key={neighbor.id} style={{ marginBottom: '12px' }}>
+                      <div>
+                        <Link href={`/neighborhood/${neighbor.slackId}`}>
+                          {neighbor.fullName || neighbor.slackFullName || neighbor.slackId || "unnamed"}
+                        </Link>
+                        {" "}({neighbor.weeklyHours}hr hackatime + {stopwatchHours}hr stopwatch = {combinedHours}hr total)
+                      </div>
+                      {selectedUser === neighbor.slackId && stopwatchData[neighbor.slackId]?.commits?.length > 0 && (
+                        <div style={{ marginTop: '8px', marginLeft: '20px', padding: '10px', backgroundColor: '#f5f5f5', borderRadius: '4px' }}>
+                          <h3>Stopwatch Sessions</h3>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            {stopwatchData[neighbor.slackId].commits.map(commit => (
+                              <div key={commit.commitId} style={{ display: 'flex', gap: '10px' }}>
+                                {commit.videoLink && (
+                                  <video 
+                                    controls 
+                                    src={commit.videoLink} 
+                                    style={{ maxWidth: 120, maxHeight: '200px' }}
+                                  />
+                                )}
+                                <div>
+                                  <p style={{ margin: '4px 0', fontWeight: 'bold' }}>{commit.appName}</p>
+                                  <p style={{ margin: '4px 0' }}>{commit.message}</p>
+                                  <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#666' }}>
+                                    {new Date(commit.commitTime).toLocaleString()} • {commit.duration} minutes
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {/* <button 
+                        onClick={() => setSelectedUser(selectedUser === neighbor.slackId ? null : neighbor.slackId)}
+                        style={{ 
+                          background: 'none', 
+                          border: 'none', 
+                          textDecoration: 'underline', 
+                          cursor: 'pointer',
+                          color: '#0070f3',
+                          fontSize: '0.9rem',
+                          padding: '4px 0'
+                        }}
+                      >
+                        {selectedUser === neighbor.slackId ? 'Hide sessions' : 'View sessions'}
+                      </button> */}
+                    </li>
+                  );
+                })}
               </ol>
             )}
           </>

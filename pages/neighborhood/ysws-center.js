@@ -50,6 +50,7 @@ export default function YSWSCenter() {
         firstName: sub.firstName,
         lastName: sub.lastName,
         slackId: Array.isArray(sub.slackId) ? sub.slackId[0] : sub.slackId,
+        slackRealId: Array.isArray(sub.slackRealId) ? sub.slackRealId[0] : sub.slackRealId,
         pfpUrl: Array.isArray(sub.Pfp) && sub.Pfp.length > 0 ? sub.Pfp[0].url : null,
         githubUsername: sub.githubUsername
       }))

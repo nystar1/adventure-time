@@ -50,7 +50,6 @@ export default function YSWSCenter() {
         firstName: sub.firstName,
         lastName: sub.lastName,
         slackId: Array.isArray(sub.slackId) ? sub.slackId[0] : sub.slackId,
-        slackRealId: Array.isArray(sub.slackRealId) ? sub.slackRealId[0] : sub.slackRealId,
         pfpUrl: Array.isArray(sub.Pfp) && sub.Pfp.length > 0 ? sub.Pfp[0].url : null,
         githubUsername: sub.githubUsername
       }))
@@ -111,10 +110,10 @@ export default function YSWSCenter() {
                             style={{ width: 16, height: 16, borderRadius: '4px', border: '1px solid #fff', boxShadow: '0 0 0 1px #ccc', marginRight: '4px', verticalAlign: 'middle' }} 
                           />
                         )}
-                        {contributor.slackRealId && (
-                          <Link href={`/neighborhood/${contributor.slackRealId}/${encodeURIComponent(project.codeUrl.split('/').pop())}`}>
+                        {contributor.slackId && (
+                          <p>
                             {contributor.firstName}
-                          </Link>
+                          </p>
                         )}
                       </span>
                     ))}

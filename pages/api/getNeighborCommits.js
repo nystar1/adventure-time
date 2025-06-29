@@ -33,6 +33,7 @@ export default async function handler(req, res) {
       duration: record.fields.duration || 0,
       commitTime: record.fields['commitTime'] || '',
       appName: record.fields.appName || '',
+      reviewComment: record.fields['Reviewer comment'] || '',
     }));
     
     res.status(200).json({ commits });

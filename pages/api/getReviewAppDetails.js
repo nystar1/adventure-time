@@ -24,8 +24,9 @@ export default async function handler(req, res) {
       Object.entries(record.fields).filter(
         ([key]) => !["reviewerEmail", "reviewedNeighborEmail"].includes(key)
       )
-    )
+    );
     res.status(200).json({
+      ...safeFields,
       contributor: Array.isArray(record.fields.reviewedNeighborSlackHandle)
         ? record.fields.reviewedNeighborSlackHandle[0]
         : record.fields.reviewedNeighborSlackHandle || record.fields.reviewedNeighbor || null,
@@ -41,10 +42,9 @@ export default async function handler(req, res) {
       reviewedApp: Array.isArray(record.fields.reviewedApp)
         ? record.fields.reviewedApp[0]
         : record.fields.reviewedApp || null,
-      recordFields: record.fields
     });
   } catch (error) {
     console.error('Error fetching review assignment:', error);
     res.status(500).json({ message: 'Failed to fetch review assignment' });
   }
-} 
+}

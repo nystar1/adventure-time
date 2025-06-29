@@ -24,7 +24,7 @@ export default async function handler(req, res) {
           "Pfp",
           "slackHandle",
           "totalTimeHackatimeHours (from neighbors)",
-          "Slack Handle (from slackNeighbor) (from neighbors)"
+          "Slack ID (from slackNeighbor) (from neighbors)"
         ]
       })
       .all();
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
       slackId: record.fields["slackHandle"] || "",
       Pfp: record.fields["Pfp"] || "",
       totalTimeHackatimeHours: record.fields["totalTimeHackatimeHours (from neighbors)"] || 0,
-      slackRealId: record.fields["Slack Handle (from slackNeighbor) (from neighbors)"] || "",
+      slackRealId: record.fields["Slack ID (from slackNeighbor) (from neighbors)"] || "",
     }));
 
     return res.status(200).json({ submissions });

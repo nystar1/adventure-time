@@ -23,7 +23,8 @@ export default async function handler(req, res) {
           "GitHub Username",
           "Pfp",
           "slackHandle",
-          "totalTimeHackatimeHours (from neighbors)"
+          "totalTimeHackatimeHours (from neighbors)",
+          "Slack Handle (from slackNeighbor) (from neighbors)"
         ]
       })
       .all();
@@ -40,7 +41,8 @@ export default async function handler(req, res) {
       githubUsername: record.fields["GitHub Username"] || "",
       slackId: record.fields["slackHandle"] || "",
       Pfp: record.fields["Pfp"] || "",
-      totalTimeHackatimeHours: record.fields["totalTimeHackatimeHours (from neighbors)"] || 0
+      totalTimeHackatimeHours: record.fields["totalTimeHackatimeHours (from neighbors)"] || 0,
+      slackRealId: records.fields["Slack Handle (from slackNeighbor) (from neighbors)"] || ""
     }));
 
     return res.status(200).json({ submissions });

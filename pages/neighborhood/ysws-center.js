@@ -110,8 +110,8 @@ export default function YSWSCenter() {
                             style={{ width: 16, height: 16, borderRadius: '4px', border: '1px solid #fff', boxShadow: '0 0 0 1px #ccc', marginRight: '4px', verticalAlign: 'middle' }} 
                           />
                         )}
-                        {contributor.slackId && (
-                          <Link href={`/neighborhood/${contributor.slackId}/${encodeURIComponent(project.codeUrl.split('/').pop())}`}>
+                        {contributor.slackRealId && (
+                          <Link href={`/neighborhood/${contributor.slackRealId}/${encodeURIComponent(project.codeUrl.split('/').pop())}`}>
                             {contributor.firstName}
                           </Link>
                         )}

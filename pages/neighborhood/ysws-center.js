@@ -112,7 +112,7 @@ export default function YSWSCenter() {
                           />
                         )}
                         {contributor.slackId && (
-                          <Link href=`https://adventure-time.hackclub.dev/neighborhood/${contributor.slackRealId}`>
+                          <Link href={`https://adventure-time.hackclub.dev/neighborhood/${contributor.slackRealId}`}>
                             {contributor.firstName}
                           </Link>
                         )}

@@ -7,7 +7,6 @@ export default function YSWSCenter() {
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sortType, setSortType] = useState('status');
 
   useEffect(() => {
     const fetchSubmissions = async () => {
@@ -57,13 +56,9 @@ export default function YSWSCenter() {
     };
   });
 
+  // Sort projects by status
   const sortedProjects = [...projectGroups].sort((a, b) => {
-    if (sortType === 'status') {
-      return a.status?.localeCompare(b.status || '');
-    } else if (sortType === 'contributors') {
-      return b.contributors.length - a.contributors.length;
-    }
-    return 0;
+    return a.status?.localeCompare(b.status || '');
   });
 
   const breadcrumbItems = [
@@ -85,18 +80,6 @@ export default function YSWSCenter() {
           This is the place where all the ships go and you can see the status, 
           what ultimately ends up in the DB, and links to their adventure time profiles.
         </p>
-        
-        <div style={{ marginBottom: 16 }}>
-          <label htmlFor="sortType">Sort by: </label>
-          <select
-            id="sortType"
-            value={sortType}
-            onChange={e => setSortType(e.target.value)}
-          >
-            <option value="status">Status</option>
-            <option value="contributors">Most Contributors</option>
-          </select>
-        </div>
         
         {loading && <p>Loading submissions...</p>}
         {error && <p>{error}</p>}

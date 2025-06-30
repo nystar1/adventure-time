@@ -15,28 +15,26 @@ export default function InPersonLeaderboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // Fetch both regular in-person data and stopwatch data
         const [neighborsResponse, stopwatchResponse] = await Promise.all([
           fetch('/api/getInPersonNeighbors'),
           fetch('/api/getWeeklyInPersonCommits')
         ]);
-        
+
         if (!neighborsResponse.ok) {
           throw new Error('Failed to fetch in-person neighbors');
         }
         if (!stopwatchResponse.ok) {
           throw new Error('Failed to fetch stopwatch data');
         }
-        
+
         const neighborsData = await neighborsResponse.json();
         const stopwatchData = await stopwatchResponse.json();
-        
-        // Create a map of stopwatch data by slackId for easy lookup
+
         const stopwatchMap = {};
         stopwatchData.users.forEach(user => {
           stopwatchMap[user.slackId] = user;
         });
-        
+
         setNeighbors(neighborsData.neighbors);
         setStopwatchData(stopwatchMap);
       } catch (err) {
@@ -63,6 +61,10 @@ export default function InPersonLeaderboard() {
       const aCombined = a.weeklyHours + ((stopwatchData[a.slackId]?.totalMinutes || 0) / 60);
       const bCombined = b.weeklyHours + ((stopwatchData[b.slackId]?.totalMinutes || 0) / 60);
       return bCombined - aCombined;
+    } else if (sortType === 'mostHackatime') {
+      return b.weeklyHours - a.weeklyHours;
+    } else if (sortType === 'leastHackatime') {
+      return a.weeklyHours - b.weeklyHours;
     }
     return 0;
   });
@@ -73,18 +75,14 @@ export default function InPersonLeaderboard() {
     { label: "In-person Weekly Leaderboard", href: "/neighborhood/in-person" }
   ];
 
-  // Get current week's date range
   const getWeekRange = () => {
     const now = new Date();
     const startOfWeek = new Date(now);
-    // 1 for Monday, 0 for Sunday, so we need to adjust
     const dayOfWeek = startOfWeek.getDay();
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday
-    
-    startOfWeek.setDate(now.getDate() + diff); // Start of week (Monday)
+    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+    startOfWeek.setDate(now.getDate() + diff);
     const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Sunday)
-    
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
     return `${startOfWeek.toLocaleDateString()} - ${endOfWeek.toLocaleDateString()}`;
   };
 
@@ -98,7 +96,7 @@ export default function InPersonLeaderboard() {
         <Breadcrumbs items={breadcrumbItems} />
         <h1>In-person Weekly Leaderboard</h1>
         <p style={{ color: '#666', marginBottom: '1rem' }}>Week of {getWeekRange()}</p>
-        
+
         <div style={{ marginBottom: 16 }}>
           <label htmlFor="sortType">Sort by: </label>
           <select
@@ -110,12 +108,14 @@ export default function InPersonLeaderboard() {
             <option value="smallestLogged">Least hours this week</option>
             <option value="largestStopwatch">Most stopwatch hours</option>
             <option value="largestCombined">Most combined hours</option>
+            <option value="mostHackatime">Most Hackatime hours</option>
+            <option value="leastHackatime">Least Hackatime hours</option>
           </select>
         </div>
-        
+
         {loading && <p>Loading in-person neighbors...</p>}
         {error && <p>{error}</p>}
-        
+
         {!loading && !error && (
           <>
             {neighbors.length === 0 ? (
@@ -126,7 +126,7 @@ export default function InPersonLeaderboard() {
                   const stopwatchMinutes = stopwatchData[neighbor.slackId]?.totalMinutes || 0;
                   const stopwatchHours = (stopwatchMinutes / 60).toFixed(1);
                   const combinedHours = (parseFloat(neighbor.weeklyHours) + parseFloat(stopwatchHours)).toFixed(1);
-                  
+
                   return (
                     <li key={neighbor.id} style={{ marginBottom: '12px' }}>
                       <div>
@@ -160,20 +160,6 @@ export default function InPersonLeaderboard() {
                           </div>
                         </div>
                       )}
-                      {/* <button 
-                        onClick={() => setSelectedUser(selectedUser === neighbor.slackId ? null : neighbor.slackId)}
-                        style={{ 
-                          background: 'none', 
-                          border: 'none', 
-                          textDecoration: 'underline', 
-                          cursor: 'pointer',
-                          color: '#0070f3',
-                          fontSize: '0.9rem',
-                          padding: '4px 0'
-                        }}
-                      >
-                        {selectedUser === neighbor.slackId ? 'Hide sessions' : 'View sessions'}
-                      </button> */}
                     </li>
                   );
                 })}
@@ -184,4 +170,4 @@ export default function InPersonLeaderboard() {
       </div>
     </>
   );
-} 
+}

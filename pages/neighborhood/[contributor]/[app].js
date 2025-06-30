@@ -515,6 +515,11 @@ export default function AppPage() {
                         <p style={{ margin: '4px 0', fontSize: '0.9rem', color: '#666' }}>
                           {new Date(commit.commitTime).toLocaleString()} • {commit.duration} minutes
                         </p>
+                        {commit.reviewComment && (
+                          <p style={{ margin: '4px 0', fontStyle: 'normal', color: '#888' }}>
+                            Reviewer Comment: {commit.reviewComment}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}

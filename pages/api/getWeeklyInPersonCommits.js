@@ -6,39 +6,40 @@ const base = new Airtable({
 
 export default async function handler(req, res) {
   try {
-    // Get current week's date range
+    // Get current time and convert to PDT
     const now = new Date();
-    const startOfWeek = new Date(now);
-    const dayOfWeek = startOfWeek.getDay();
-    const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday
-    
-    startOfWeek.setDate(now.getDate() + diff);
-    startOfWeek.setHours(0, 0, 0, 0); // Start of week (Monday)
-    
+
+    // Determine previous Monday 00:00 PDT and upcoming Sunday 23:59 PDT
+    const pdtOffset = -7 * 60; // PDT offset in minutes (-7h)
+    const utcOffsetMs = pdtOffset * 60 * 1000;
+
+    const localNow = new Date(now.getTime() + utcOffsetMs);
+    const day = localNow.getDay(); // Sunday=0, Monday=1,... Saturday=6
+    const mondayOffset = day === 0 ? -6 : 1 - day;
+
+    const startOfWeek = new Date(localNow);
+    startOfWeek.setDate(localNow.getDate() + mondayOffset);
+    startOfWeek.setHours(0, 0, 0, 0);
+
     const endOfWeek = new Date(startOfWeek);
     endOfWeek.setDate(startOfWeek.getDate() + 6);
-    endOfWeek.setHours(23, 59, 59, 999); // End of week (Sunday)
-    
-    // Format dates for Airtable formula
-    const startDateStr = startOfWeek.toISOString();
-    const endDateStr = endOfWeek.toISOString();
-    
-    // First, get all in-person neighbors
+    endOfWeek.setHours(23, 59, 0, 0); // End at 23:59 PDT on Sunday
+
+    const startDateStr = new Date(startOfWeek.getTime() - utcOffsetMs).toISOString();
+    const endDateStr = new Date(endOfWeek.getTime() - utcOffsetMs).toISOString();
+
     const neighborRecords = await base("Neighbors")
       .select({
         filterByFormula: `{isIRL} = 1`,
       })
       .all();
 
-    // Create a map to store commits by slackId
     const commitsByUser = {};
-    
-    // For each in-person neighbor, get their commits for this week
+
     for (const neighbor of neighborRecords) {
       const slackId = neighbor.fields["Slack ID (from slackNeighbor)"];
       if (!slackId) continue;
-      
-      // Fetch commits for this user within the date range
+
       const commitRecords = await base('Commits').select({
         filterByFormula: `AND(
           {slackId} = '${slackId}',
@@ -47,10 +48,8 @@ export default async function handler(req, res) {
         )`,
         sort: [{ field: 'commitTime', direction: 'desc' }]
       }).all();
-      
-      // Calculate total duration
+
       const commits = commitRecords.map(record => {
-        // Handle different formats of duration field
         let duration = 0;
         if (Array.isArray(record.fields.duration)) {
           duration = record.fields.duration[0] || 0;
@@ -59,7 +58,7 @@ export default async function handler(req, res) {
         } else if (typeof record.fields.duration === 'string') {
           duration = parseFloat(record.fields.duration) || 0;
         }
-        
+
         return {
           commitId: record.id,
           message: record.fields.message || '',
@@ -69,11 +68,9 @@ export default async function handler(req, res) {
           appName: record.fields.appName || '',
         };
       });
-      
-      // Calculate total minutes
+
       const totalMinutes = commits.reduce((total, commit) => total + commit.duration, 0);
-      
-      // Store in our map
+
       commitsByUser[slackId] = {
         slackId,
         fullName: neighbor.fields["Full Name (from slackNeighbor)"] || null,
@@ -83,17 +80,16 @@ export default async function handler(req, res) {
         totalMinutes
       };
     }
-    
-    // Convert to array and sort by total minutes
+
     const result = Object.values(commitsByUser);
-    
-    res.status(200).json({ 
-      weekStart: startOfWeek.toISOString(),
-      weekEnd: endOfWeek.toISOString(),
-      users: result 
+
+    res.status(200).json({
+      weekStart: startDateStr,
+      weekEnd: endDateStr,
+      users: result
     });
   } catch (error) {
     console.error('Error fetching weekly in-person commits:', error);
     res.status(500).json({ message: 'Failed to fetch weekly commits', error: error.message });
   }
-} 
+}

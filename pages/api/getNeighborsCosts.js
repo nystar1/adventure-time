@@ -35,7 +35,8 @@ export default async function handler(req, res) {
         fields: [
           "start_date",
           "end_date",
-          "bookingStatus"
+          "bookingStatus",
+          "houseName"
         ]
       })
       .all();
@@ -43,12 +44,27 @@ export default async function handler(req, res) {
     // Create a map of stays by ID for quick lookup
     const staysById = {};
     stayRecords.forEach(stay => {
+      // Handle houseName as an array
+      const houseName = stay.fields.houseName && stay.fields.houseName.length > 0 
+        ? stay.fields.houseName[0] 
+        : "Unknown";
+        
       staysById[stay.id] = {
         startDate: stay.fields.start_date,
         endDate: stay.fields.end_date,
-        bookingStatus: stay.fields.bookingStatus
+        bookingStatus: stay.fields.bookingStatus,
+        houseName: houseName
       };
     });
+
+    console.log("Stay records:", stayRecords);
+    // Get unique house names
+    const uniqueHouseNames = [...new Set(stayRecords
+      .filter(stay => stay.fields.houseName && stay.fields.houseName.length > 0)
+      .map(stay => stay.fields.houseName[0]))]
+      .sort((a, b) => a.localeCompare(b));
+    
+    console.log("Unique house names:", uniqueHouseNames);
 
     const neighbors = neighborRecords
       .map(record => {
@@ -57,6 +73,7 @@ export default async function handler(req, res) {
         let foodCost = 0;
         let startDate = null;
         let endDate = null;
+        let houseName = null;
         
         if (record.fields.stay && record.fields.stay.length > 0) {
           // Find the most recent confirmed stay (or any stay if none are confirmed)
@@ -88,6 +105,7 @@ export default async function handler(req, res) {
           if (mostRecentStay) {
             startDate = mostRecentStay.startDate;
             endDate = mostRecentStay.endDate;
+            houseName = mostRecentStay.houseName;
             
             const stayStartDate = new Date(startDate);
             const stayEndDate = new Date(endDate);
@@ -125,7 +143,8 @@ export default async function handler(req, res) {
           country: country,
           stipendAmount: stipendAmount,
           startDate: startDate,
-          endDate: endDate
+          endDate: endDate,
+          houseName: houseName
         };
       })
       // Filter out neighbors who have BOTH under 1 hour hackatime AND 0 weightedGrantsContribution
@@ -134,7 +153,10 @@ export default async function handler(req, res) {
         return neighbor.totalTimeHackatimeHours >= 1 || neighbor.weightedGrantsContribution > 0;
       });
 
-    return res.status(200).json({ neighbors });
+    return res.status(200).json({ 
+      neighbors,
+      houses: uniqueHouseNames
+    });
   } catch (error) {
     console.error("Error fetching neighbors costs:", error);
     return res.status(500).json({ message: "Error fetching neighbors costs" });

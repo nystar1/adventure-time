@@ -30,7 +30,10 @@ export default async function handler(req, res) {
           "Full Name",
           "Apps",
           "GrantedHours",
-          "weightedGrantsContribution"
+          "weightedGrantsContribution",
+          "stay",
+          "approvedFlightStipend",
+          "country"
         ],
         filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
         maxRecords: 1
@@ -43,6 +46,41 @@ export default async function handler(req, res) {
 
     const neighbor = neighborRecords[0];
     const neighborId = neighbor.id;
+    
+    // Get stay information if available
+    let stayInfo = {
+      startDate: null,
+      endDate: null,
+      houseName: null,
+      bookingStatus: null
+    };
+    
+    if (neighbor.fields.stay && neighbor.fields.stay.length > 0) {
+      // Get all stays for this neighbor
+      const stayRecords = await base("stay")
+        .select({
+          fields: [
+            "start_date",
+            "end_date",
+            "bookingStatus",
+            "houseName"
+          ],
+          filterByFormula: `RECORD_ID() = '${neighbor.fields.stay[0]}'`
+        })
+        .firstPage();
+      
+      if (stayRecords.length > 0) {
+        const stay = stayRecords[0];
+        stayInfo = {
+          startDate: stay.fields.start_date || null,
+          endDate: stay.fields.end_date || null,
+          houseName: stay.fields.houseName && stay.fields.houseName.length > 0 
+            ? stay.fields.houseName[0] 
+            : null,
+          bookingStatus: stay.fields.bookingStatus || null
+        };
+      }
+    }
 
     // Get all apps
     const allApps = await base("Apps")
@@ -73,6 +111,15 @@ export default async function handler(req, res) {
     // Sort apps by member count (descending)
     const sortedApps = neighborApps.sort((a, b) => b.memberCount - a.memberCount);
 
+    // Calculate flight stipend amount based on approvedFlightStipend and country
+    let stipendAmount = 0;
+    const approvedFlightStipend = neighbor.fields.approvedFlightStipend || false;
+    const country = neighbor.fields.country || "";
+    
+    if (approvedFlightStipend === true) {
+      stipendAmount = country === "US" ? 500 : 750;
+    }
+
     // Prepare the response
     const response = {
       neighbor: {
@@ -86,7 +133,14 @@ export default async function handler(req, res) {
         totalTimeStopwatchHours: Math.round(neighbor.fields.totalTimeStopwatchHours || 0),
         fullName: neighbor.fields["Full Name"] || null,
         grantedHours: neighbor.fields.GrantedHours || 0,
-        weightedGrantsContribution: neighbor.fields.weightedGrantsContribution || 0
+        weightedGrantsContribution: neighbor.fields.weightedGrantsContribution || 0,
+        startDate: stayInfo.startDate,
+        endDate: stayInfo.endDate,
+        houseName: stayInfo.houseName,
+        bookingStatus: stayInfo.bookingStatus,
+        approvedFlightStipend: approvedFlightStipend,
+        country: country,
+        stipendAmount: stipendAmount
       },
       apps: sortedApps
     };

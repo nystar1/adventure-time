@@ -116,7 +116,9 @@ export default function ContributorPage() {
           <>
             <h1>{data.neighbor.fullName || data.neighbor.slackFullName || "unnamed"}</h1>
             
-
+            {data.neighbor.houseName && (
+              <p><strong>House:</strong> {data.neighbor.houseName}</p>
+            )}
 
             <p>Hackatime Hours: {data.neighbor.totalTimeHackatimeHours}hr</p>
 

@@ -7,11 +7,13 @@ import Breadcrumbs from "@/components/Breadcrumbs";
 export default function PriceChart() {
   const router = useRouter();
   const [neighbors, setNeighbors] = useState([]);
+  const [houses, setHouses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sortType, setSortType] = useState('largestGrants');
   const [showOnlyWithStay, setShowOnlyWithStay] = useState(false);
   const [showProjectedTotal, setShowProjectedTotal] = useState(false);
+  const [selectedHouse, setSelectedHouse] = useState('all');
   const [forceUpdate, setForceUpdate] = useState(0);
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
 
@@ -20,7 +22,7 @@ export default function PriceChart() {
     if (!router.isReady || urlParamsApplied) return;
     
     // Get parameters from URL
-    const { sort, onlyWithStay, projected } = router.query;
+    const { sort, onlyWithStay, projected, house } = router.query;
     
     // Apply sort parameter if valid
     const validSortTypes = ['largestGrants', 'smallestGrants', 'largestCost', 'smallestCost', 'bestEfficiency', 'worstEfficiency'];
@@ -35,6 +37,10 @@ export default function PriceChart() {
     
     if (projected === 'true') {
       setShowProjectedTotal(true);
+    }
+    
+    if (house) {
+      setSelectedHouse(house);
     }
     
     setUrlParamsApplied(true);
@@ -60,17 +66,20 @@ export default function PriceChart() {
       query.projected = 'true';
     }
     
+
     // Compare current URL params with new ones to avoid unnecessary updates
     const currentQuery = router.query;
     const currentSort = currentQuery.sort || 'largestGrants';
     const currentOnlyWithStay = currentQuery.onlyWithStay === 'true';
     const currentProjected = currentQuery.projected === 'true';
+    const currentHouse = currentQuery.house || 'all';
     
     // Only update URL if something changed
     if (
       currentSort !== (query.sort || 'largestGrants') ||
       currentOnlyWithStay !== !!query.onlyWithStay ||
-      currentProjected !== !!query.projected
+      currentProjected !== !!query.projected ||
+      currentHouse !== (query.house || 'all')
     ) {
       // Update URL without refreshing the page
       router.push({
@@ -83,13 +92,13 @@ export default function PriceChart() {
   // Handle sort type change
   const handleSortTypeChange = (newSortType) => {
     setSortType(newSortType);
-    updateUrlParams(newSortType, showOnlyWithStay, showProjectedTotal);
+    updateUrlParams(newSortType, showOnlyWithStay, showProjectedTotal, selectedHouse);
   };
 
   // Handle show only with stay change
   const handleShowOnlyWithStayChange = (checked) => {
     setShowOnlyWithStay(checked);
-    updateUrlParams(sortType, checked, showProjectedTotal);
+    updateUrlParams(sortType, checked, showProjectedTotal, selectedHouse);
   };
 
   // Toggle projected total and force recalculation
@@ -97,7 +106,13 @@ export default function PriceChart() {
     setShowProjectedTotal(checked);
     // Force a recalculation by incrementing forceUpdate
     setForceUpdate(prev => prev + 1);
-    updateUrlParams(sortType, showOnlyWithStay, checked);
+    updateUrlParams(sortType, showOnlyWithStay, checked, selectedHouse);
+  };
+
+  // Handle house selection change
+  const handleHouseChange = (house) => {
+    setSelectedHouse(house);
+    updateUrlParams(sortType, showOnlyWithStay, showProjectedTotal, house);
   };
 
   useEffect(() => {
@@ -110,6 +125,10 @@ export default function PriceChart() {
           neighbor => neighbor.fullName || neighbor.slackFullName
         );
         
+        // Set houses list
+        console.log("Houses from API:", data.houses);
+        setHouses(data.houses || []);
+        
         // Check if we're getting date information from the API
         const sampleNeighbor = filteredNeighbors[0];
         if (sampleNeighbor) {
@@ -119,7 +138,8 @@ export default function PriceChart() {
               rentCost: sampleNeighbor.rentCost,
               foodCost: sampleNeighbor.foodCost,
               startDate: sampleNeighbor.startDate,
-              endDate: sampleNeighbor.endDate
+              endDate: sampleNeighbor.endDate,
+              houseName: sampleNeighbor.houseName
             })
           );
         }
@@ -139,7 +159,8 @@ export default function PriceChart() {
             endDate: armand.endDate,
             country: armand.country,
             approvedFlightStipend: armand.approvedFlightStipend,
-            stipendAmount: armand.stipendAmount
+            stipendAmount: armand.stipendAmount,
+            houseName: armand.houseName
           }));
         }
         
@@ -293,6 +314,7 @@ export default function PriceChart() {
       startDate: startDateStr,
       endDate: endDateStr,
       country: neighbor.country || 'Unknown',
+      houseName: neighbor.houseName || 'Unknown',
       isProjected: isProjected,
       debugInfo: debugInfo
     };
@@ -317,6 +339,10 @@ export default function PriceChart() {
     }
     
     let message = `Cost Breakdown for ${neighbor.fullName || neighbor.slackFullName || neighbor.slackId || "unnamed"}:\n`;
+    
+    if (breakdown.houseName && breakdown.houseName !== 'Unknown') {
+      message += `House: ${breakdown.houseName}\n`;
+    }
     
     // // Add debugging info (only in development)
     // if (process.env.NODE_ENV === 'development' && breakdown.debugInfo) {
@@ -378,6 +404,13 @@ export default function PriceChart() {
 
   // Filter neighbors based on selected filters
   const filteredNeighbors = [...neighbors].filter(neighbor => {
+    // Apply house filter if not "all"
+    if (selectedHouse !== 'all') {
+      if (!neighbor.houseName || neighbor.houseName !== selectedHouse) {
+        return false;
+      }
+    }
+    
     // Apply stay filter if enabled
     if (showOnlyWithStay) {
       // Only show neighbors with a confirmed stay that has already started
@@ -435,8 +468,13 @@ export default function PriceChart() {
     return 0;
   });
 
-  // Calculate total grants
+  // Calculate total grants and costs by house
   const totalWeightedGrants = neighbors.reduce((sum, neighbor) => sum + (neighbor.weightedGrantsContribution || 0), 0);
+  
+  // Calculate stats for the current filtered view
+  const filteredTotalGrants = filteredNeighbors.reduce((sum, neighbor) => sum + (neighbor.weightedGrantsContribution || 0), 0);
+  const filteredTotalCost = filteredNeighbors.reduce((sum, neighbor) => sum + calculateCost(neighbor), 0);
+  const filteredEfficiency = filteredTotalGrants > 0 ? filteredTotalCost / (filteredTotalGrants * 10) : 0;
 
   const breadcrumbItems = [
     { label: "Adventure Time", href: "/" },
@@ -470,40 +508,6 @@ export default function PriceChart() {
     }
   }, [neighbors, loading]);
 
-  // Generate a shareable URL with current settings
-  const generateShareableUrl = () => {
-    const baseUrl = window.location.origin + window.location.pathname;
-    const params = new URLSearchParams();
-    
-    if (sortType !== 'largestGrants') {
-      params.append('sort', sortType);
-    }
-    
-    if (showOnlyWithStay) {
-      params.append('onlyWithStay', 'true');
-    }
-    
-    if (showProjectedTotal) {
-      params.append('projected', 'true');
-    }
-    
-    const queryString = params.toString();
-    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
-  };
-
-  // Copy shareable link to clipboard
-  const copyShareableLink = () => {
-    const shareableUrl = generateShareableUrl();
-    navigator.clipboard.writeText(shareableUrl)
-      .then(() => {
-        alert('Shareable link copied to clipboard!');
-      })
-      .catch(err => {
-        console.error('Failed to copy link:', err);
-        alert('Failed to copy link. Please try again.');
-      });
-  };
-
   return (
     <>
       <Head>
@@ -514,6 +518,16 @@ export default function PriceChart() {
         <Breadcrumbs items={breadcrumbItems} />
         <h1>Neighborhood Price Chart</h1>
         <h2>Total Weighted Grants for Neighborhood: {totalWeightedGrants.toFixed(0)}</h2>
+        
+        {selectedHouse !== 'all' && (
+          <div style={{ marginBottom: 16 }}>
+            <h3>Stats for {selectedHouse}:</h3>
+            <p>Weighted Grants: {filteredTotalGrants.toFixed(0)}</p>
+            <p>Total Cost: ${filteredTotalCost.toFixed(0)}</p>
+            <p>Efficiency: ${filteredEfficiency.toFixed(2)}/hr</p>
+          </div>
+        )}
+        
         <div style={{ marginBottom: 16 }}>
           <div style={{ marginBottom: 8 }}>
             <label htmlFor="sortType">Sort by: </label>
@@ -528,6 +542,24 @@ export default function PriceChart() {
               <option value="smallestCost">Lowest total cost</option>
               <option value="bestEfficiency">Best spend efficiency</option>
               <option value="worstEfficiency">Worst spend efficiency</option>
+            </select>
+          </div>
+          
+          <div style={{ marginBottom: 8 }}>
+            <label htmlFor="houseFilter" style={{ marginRight: '8px' }}>House: </label>
+            <select
+              id="houseFilter"
+              value={selectedHouse}
+              onChange={e => handleHouseChange(e.target.value)}
+            >
+              <option value="all">All Houses</option>
+              {houses && houses.length > 0 ? (
+                houses.map(house => (
+                  <option key={house} value={house}>{house}</option>
+                ))
+              ) : (
+                <option value="" disabled>No houses found</option>
+              )}
             </select>
           </div>
           
@@ -554,7 +586,6 @@ export default function PriceChart() {
               Project Total Spend of Stay
             </label>
           </div>
-
         </div>
         
         {loading && <p>Loading neighbors cost data...</p>}
@@ -576,6 +607,7 @@ export default function PriceChart() {
                   </Link>
                   {" "}
                   <span>({neighbor.weightedGrantsContribution.toFixed(0)} Weighted Grants)</span>
+                  {/* {neighbor.houseName && <span> [{neighbor.houseName}]</span>} */}
                   {hasCost && (
                     <span 
                       title="Click for cost breakdown"

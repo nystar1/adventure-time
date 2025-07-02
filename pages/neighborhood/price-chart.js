@@ -1,9 +1,11 @@
 import Head from "next/head";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import Breadcrumbs from "@/components/Breadcrumbs";
 
 export default function PriceChart() {
+  const router = useRouter();
   const [neighbors, setNeighbors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,12 +13,91 @@ export default function PriceChart() {
   const [showOnlyWithStay, setShowOnlyWithStay] = useState(false);
   const [showProjectedTotal, setShowProjectedTotal] = useState(false);
   const [forceUpdate, setForceUpdate] = useState(0);
+  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
+
+  // Apply URL parameters when router is ready
+  useEffect(() => {
+    if (!router.isReady || urlParamsApplied) return;
+    
+    // Get parameters from URL
+    const { sort, onlyWithStay, projected } = router.query;
+    
+    // Apply sort parameter if valid
+    const validSortTypes = ['largestGrants', 'smallestGrants', 'largestCost', 'smallestCost', 'bestEfficiency', 'worstEfficiency'];
+    if (sort && validSortTypes.includes(sort)) {
+      setSortType(sort);
+    }
+    
+    // Apply filter parameters
+    if (onlyWithStay === 'true') {
+      setShowOnlyWithStay(true);
+    }
+    
+    if (projected === 'true') {
+      setShowProjectedTotal(true);
+    }
+    
+    setUrlParamsApplied(true);
+  }, [router.isReady, router.query, urlParamsApplied]);
+
+  // Update URL when filters change - but only after initial URL params are applied
+  const updateUrlParams = (newSortType, newShowOnlyWithStay, newShowProjectedTotal) => {
+    // Skip URL updates until initial URL parameters are applied
+    if (!urlParamsApplied) return;
+    
+    const query = {};
+    
+    // Only add parameters that are not default values
+    if (newSortType !== 'largestGrants') {
+      query.sort = newSortType;
+    }
+    
+    if (newShowOnlyWithStay) {
+      query.onlyWithStay = 'true';
+    }
+    
+    if (newShowProjectedTotal) {
+      query.projected = 'true';
+    }
+    
+    // Compare current URL params with new ones to avoid unnecessary updates
+    const currentQuery = router.query;
+    const currentSort = currentQuery.sort || 'largestGrants';
+    const currentOnlyWithStay = currentQuery.onlyWithStay === 'true';
+    const currentProjected = currentQuery.projected === 'true';
+    
+    // Only update URL if something changed
+    if (
+      currentSort !== (query.sort || 'largestGrants') ||
+      currentOnlyWithStay !== !!query.onlyWithStay ||
+      currentProjected !== !!query.projected
+    ) {
+      // Update URL without refreshing the page
+      router.push({
+        pathname: router.pathname,
+        query
+      }, undefined, { shallow: true });
+    }
+  };
+
+  // Handle sort type change
+  const handleSortTypeChange = (newSortType) => {
+    setSortType(newSortType);
+    updateUrlParams(newSortType, showOnlyWithStay, showProjectedTotal);
+  };
+
+  // Handle show only with stay change
+  const handleShowOnlyWithStayChange = (checked) => {
+    setShowOnlyWithStay(checked);
+    updateUrlParams(sortType, checked, showProjectedTotal);
+  };
 
   // Toggle projected total and force recalculation
   const toggleProjectedTotal = (checked) => {
     setShowProjectedTotal(checked);
     // Force a recalculation by incrementing forceUpdate
     setForceUpdate(prev => prev + 1);
+    updateUrlParams(sortType, showOnlyWithStay, checked);
   };
 
   useEffect(() => {
@@ -389,6 +470,40 @@ export default function PriceChart() {
     }
   }, [neighbors, loading]);
 
+  // Generate a shareable URL with current settings
+  const generateShareableUrl = () => {
+    const baseUrl = window.location.origin + window.location.pathname;
+    const params = new URLSearchParams();
+    
+    if (sortType !== 'largestGrants') {
+      params.append('sort', sortType);
+    }
+    
+    if (showOnlyWithStay) {
+      params.append('onlyWithStay', 'true');
+    }
+    
+    if (showProjectedTotal) {
+      params.append('projected', 'true');
+    }
+    
+    const queryString = params.toString();
+    return queryString ? `${baseUrl}?${queryString}` : baseUrl;
+  };
+
+  // Copy shareable link to clipboard
+  const copyShareableLink = () => {
+    const shareableUrl = generateShareableUrl();
+    navigator.clipboard.writeText(shareableUrl)
+      .then(() => {
+        alert('Shareable link copied to clipboard!');
+      })
+      .catch(err => {
+        console.error('Failed to copy link:', err);
+        alert('Failed to copy link. Please try again.');
+      });
+  };
+
   return (
     <>
       <Head>
@@ -405,7 +520,7 @@ export default function PriceChart() {
             <select
               id="sortType"
               value={sortType}
-              onChange={e => setSortType(e.target.value)}
+              onChange={e => handleSortTypeChange(e.target.value)}
             >
               <option value="largestGrants">Most weighted grants</option>
               <option value="smallestGrants">Fewest weighted grants</option>
@@ -421,14 +536,14 @@ export default function PriceChart() {
               <input
                 type="checkbox"
                 checked={showOnlyWithStay}
-                onChange={e => setShowOnlyWithStay(e.target.checked)}
+                onChange={e => handleShowOnlyWithStayChange(e.target.checked)}
                 style={{ marginRight: '8px' }}
               />
               Show only neighbors with stays
             </label>
           </div>
 
-          <div>
+          <div style={{ marginBottom: 16 }}>
             <label style={{ display: 'flex', alignItems: 'center' }}>
               <input
                 type="checkbox"
@@ -439,6 +554,7 @@ export default function PriceChart() {
               Project Total Spend of Stay
             </label>
           </div>
+
         </div>
         
         {loading && <p>Loading neighbors cost data...</p>}

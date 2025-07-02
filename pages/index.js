@@ -34,13 +34,8 @@ export default function Home() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
       <div>
         <p>Adventures</p>
-<<<<<<< HEAD
         <span>Neighborhood (<Link href="/neighborhood">Leaderboard</Link>) (<Link href="/neighborhood/in-person">In-person Weekly</Link>) (<Link href="/neighborhood/feed">Feed</Link>) (<Link href="/neighborhood/globe">Globe</Link>) (<Link href="/neighborhood/starchart">StarChart</Link>) (<Link href="/neighborhood/price-chart">Price Chart</Link>)</span>
         </div>
-=======
-<span>Neighborhood (<Link href="/neighborhood">Leaderboard</Link>) (<Link href="/neighborhood/in-person">In-person Weekly</Link>) (<Link href="/neighborhood/feed">Feed</Link>) (<Link href="/neighborhood/globe">Globe</Link>) (<Link href="/neighborhood/starchart">StarChart</Link>) (<Link href="/hackbnb">HackBnB</Link>)</span>
-  </div>
->>>>>>> addf23f35bbb1864d730a797b5c39b6e248935e0
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           {hasToken ? (
             <>

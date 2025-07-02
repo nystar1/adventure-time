@@ -4,21 +4,20 @@ const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FI
   process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID
 );
 
-// Helper function to get start and end of current week
+// Helper function to get start and end of current week in PDT
 function getWeekDates() {
-  const now = new Date();
+  const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
   const startOfWeek = new Date(now);
-  // 1 for Monday, 0 for Sunday, so we need to adjust
   const dayOfWeek = startOfWeek.getDay();
-  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday
-  
-  startOfWeek.setDate(startOfWeek.getDate() + diff); // Start of week (Monday)
+  const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+
+  startOfWeek.setDate(startOfWeek.getDate() + diff);
   startOfWeek.setHours(0, 0, 0, 0);
-  
+
   const endOfWeek = new Date(startOfWeek);
-  endOfWeek.setDate(startOfWeek.getDate() + 6); // End of week (Sunday)
+  endOfWeek.setDate(startOfWeek.getDate() + 6);
   endOfWeek.setHours(23, 59, 59, 999);
-  
+
   return {
     start: Math.floor(startOfWeek.getTime() / 1000),
     end: Math.floor(endOfWeek.getTime() / 1000)
@@ -42,12 +41,11 @@ async function getHackatimeData(slackId) {
 
     const data = await response.json();
     const { start, end } = getWeekDates();
-    
-    // Calculate total hours from spans within this week
+
     const totalHours = data.spans
       .filter(span => span.end_time >= start && span.end_time <= end)
-      .reduce((sum, span) => sum + (span.duration || 0), 0) / 3600; // Convert seconds to hours
-    
+      .reduce((sum, span) => sum + (span.duration || 0), 0) / 3600;
+
     return totalHours;
   } catch (error) {
     console.error(`Error fetching Hackatime data for ${slackId}:`, error);
@@ -76,7 +74,6 @@ export default async function handler(req, res) {
       })
       .all();
 
-    // Process each neighbor to get their Hackatime data
     const neighborsWithHours = await Promise.all(
       neighborRecords.map(async (record) => {
         const slackId = record.fields["Slack ID (from slackNeighbor)"];
@@ -91,12 +88,11 @@ export default async function handler(req, res) {
           fullName: record.fields["Full Name"] || null,
           airport: record.fields.airport,
           isIRL: record.fields.isIRL || false,
-          weeklyHours: Math.round(weeklyHours * 10) / 10 // Round to 1 decimal place
+          weeklyHours: Math.round(weeklyHours * 10) / 10
         };
       })
     );
 
-    // Sort by weekly hours
     const sortedNeighbors = neighborsWithHours.sort((a, b) => b.weeklyHours - a.weeklyHours);
 
     return res.status(200).json({ neighbors: sortedNeighbors });
@@ -104,4 +100,4 @@ export default async function handler(req, res) {
     console.error("Error fetching in-person neighbors:", error);
     return res.status(500).json({ message: "Error fetching in-person neighbors" });
   }
-} 
+}

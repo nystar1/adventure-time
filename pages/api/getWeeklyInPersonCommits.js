@@ -7,7 +7,7 @@ const base = new Airtable({
 export default async function handler(req, res) {
   try {
     // Get current week's date range
-    const now = new Date();
+const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
     const startOfWeek = new Date(now);
     const dayOfWeek = startOfWeek.getDay();
     const diff = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // If Sunday, go back 6 days, otherwise go to Monday

@@ -590,7 +590,13 @@ export default function PriceChart() {
                     </span>
                   )}
                   {hasEfficiency && (
-                    <span> (${spendEfficiency.toFixed(2)}/hr spendEfficiency)</span>
+                    <span style={{ 
+                      color: spendEfficiency <= 12 ? 'green' : 
+                             spendEfficiency <= 20 ? 'blue' : 
+                             'red'
+                    }}>
+                      {" "}(${spendEfficiency.toFixed(2)}/hr spendEfficiency)
+                    </span>
                   )}
                 </li>
               );

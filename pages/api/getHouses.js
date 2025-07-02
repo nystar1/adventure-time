@@ -1,7 +1,7 @@
 import Airtable from "airtable";
 
 const base = new Airtable({
-  apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY,
+  apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED,
 }).base(process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID);
 
 // Helper function to fetch all pages of records

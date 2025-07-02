@@ -1,6 +1,6 @@
 import Airtable from "airtable";
 
-const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY }).base(
+const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
   process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID
 );
 
@@ -29,7 +29,8 @@ export default async function handler(req, res) {
           "totalTimeStopwatchHours",
           "Full Name",
           "Apps",
-          "GrantedHours"
+          "GrantedHours",
+          "weightedGrantsContribution"
         ],
         filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
         maxRecords: 1
@@ -84,7 +85,8 @@ export default async function handler(req, res) {
         totalTimeHackatimeHours: Math.round(neighbor.fields.totalTimeHackatimeHours || 0),
         totalTimeStopwatchHours: Math.round(neighbor.fields.totalTimeStopwatchHours || 0),
         fullName: neighbor.fields["Full Name"] || null,
-        grantedHours: neighbor.fields.GrantedHours || 0
+        grantedHours: neighbor.fields.GrantedHours || 0,
+        weightedGrantsContribution: neighbor.fields.weightedGrantsContribution || 0
       },
       apps: sortedApps
     };

@@ -1,6 +1,10 @@
 import Airtable from "airtable";
 
-const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY }).base(
+// Get the API key from our utility function
+const apiKey = process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED
+console.log("API Key first 10 chars:", apiKey ? apiKey.substring(0, 10) + "..." : "undefined");
+
+const base = new Airtable({ apiKey }).base(
   process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID
 );
 

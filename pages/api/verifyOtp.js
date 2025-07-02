@@ -2,7 +2,7 @@ import Airtable from "airtable";
 import crypto from 'crypto';
 
 const base = new Airtable({
-  apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY,
+  apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED,
 }).base(process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID);
 
 export default async function handler(req, res) {

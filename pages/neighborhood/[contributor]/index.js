@@ -26,7 +26,7 @@ export default function ContributorPage() {
         }
         const data = await response.json();
         setData(data);
-        setNumberOfWeightedGrants((parseFloat(data.neighbor?.grantedHours) || 0) / 10);
+        setNumberOfWeightedGrants(data.neighbor?.weightedGrantsContribution || 0);
       } catch (err) {
         setError('Failed to load neighbor details');
         console.error('Error fetching neighbor details:', err);

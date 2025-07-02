@@ -64,6 +64,9 @@ export default function Neighborhood() {
         <Breadcrumbs items={breadcrumbItems} />
         <h1>Neighborhood</h1>
         <div style={{ marginBottom: 16 }}>
+          <Link href="/neighborhood/price-chart">View Price Chart</Link>
+        </div>
+        <div style={{ marginBottom: 16 }}>
           <label htmlFor="sortType">Sort by: </label>
           <select
             id="sortType"

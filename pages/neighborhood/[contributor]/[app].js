@@ -60,7 +60,7 @@ export default function AppPage() {
       
       try {
         setCommitsLoading(true);
-        const response = await fetch(`/api/getNeighborCommits?slackId=${contributor}&appName=${encodeURIComponent(appName)}`);
+        const response = await fetch(`/api/getAppCommits?slackId=${contributor}&appName=${encodeURIComponent(appName)}`);
         if (!response.ok) {
           throw new Error('Failed to fetch commits');
         }
@@ -489,12 +489,12 @@ export default function AppPage() {
               <>
                 {(() => {
                   // Calculate total duration from all commits
-                  const totalMinutes = commits.reduce((total, commit) => total + (commit.duration[0] || 0), 0);
+                  const totalMinutes = commits.reduce((total, commit) => total + (commit.duration || 0), 0);
                   const totalHours = (totalMinutes / 60).toFixed(1);
                   
                   return (
                     <p style={{ fontSize: '0.9rem', color: '#666', maxWidth: '600px', marginBottom: '16px' }}>
-                      This user logged <strong>{totalHours} hours</strong> in stopwatch which is subject to scrutiny and may or may not be approved (up to reviewer)
+                      This user logged <strong>{totalHours} hours</strong> in stopwatch for this app which is subject to scrutiny and may or may not be approved (up to reviewer)
                     </p>
                   );
                 })()}

@@ -15,6 +15,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ message: "Missing slackId or githubLink" });
   }
 
+  if (!/^[a-zA-Z0-9]+$/.test(slackId)) {
+    return res.status(400).json({ message: "Invalid slackId" });
+  }
+
   try {
     // 1. Look up the neighbor's email by Slack ID
     const neighbors = await base("Neighbors")
@@ -42,7 +46,7 @@ export default async function handler(req, res) {
     // 2. Query ShipLog by email and githubLink
     const ships = await base("ShipLog")
       .select({
-        filterByFormula: `AND({Email} = '${email}', {Github Link} = '${githubLink}')`
+        filterByFormula: `AND({Email} = '${email}', {Github Link} = '${githubLink.replace(/'/g, "\\'")}')`
       })
       .all();
 

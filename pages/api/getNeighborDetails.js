@@ -11,7 +11,7 @@ export default async function handler(req, res) {
 
   const { slackId } = req.query;
 
-  let validateSlackId = str.length >= 9 && str.length <= 14 && (() => { for (let i = str.length, c; i--;) { c = str.charCodeAt(i); if ((c < 48 || c > 122) || (c > 57 && c < 65) || (c > 90 && c < 97)) return false; } return true; })();
+  const validateSlackId = str => str.length >= 9 && str.length <= 14 && (() => { for (let i = str.length, c; i--;) { c = str.charCodeAt(i); if ((c < 48 || c > 122) || (c > 57 && c < 65) || (c > 90 && c < 97)) return false; } return true; })();
 
   if (!slackId || !validateSlackId(slackId)) {
     return res.status(400).json({ message: "Invalid or missing slackId" });
@@ -123,7 +123,7 @@ export default async function handler(req, res) {
       stipendAmount = country === "US" ? 500 : 750;
     }
 
-    const slackHandle = neighbor.fields["Slack Handle (from slackNeighbor)"] || null
+    const slackHandle = neighbor.fields["Slack Handle (from slackNeighbor)"] || null;
 
     // Prepare the response
     const response = {

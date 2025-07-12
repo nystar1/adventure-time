@@ -120,18 +120,21 @@ export default async function handler(req, res) {
       stipendAmount = country === "US" ? 500 : 750;
     }
 
+    const slackHandle = record.fields["Slack Handle (from slackNeighbor)"] || null
+
     // Prepare the response
     const response = {
       neighbor: {
         id: neighbor.id,
         pfp: neighbor.fields["Pfp (from slackNeighbor)"]?.[0]?.url || null,
         slackId: neighbor.fields["Slack ID (from slackNeighbor)"] || null,
-        slackFullName: neighbor.fields["Full Name (from slackNeighbor)"] || null,
+        slackFullName: slackHandle,
+        slackHandle: slackHandle,
         githubUsername: neighbor.fields.githubUsername || null,
         totalTimeCombinedHours: Math.round(neighbor.fields.totalTimeCombinedHours || 0),
         totalTimeHackatimeHours: Math.round(neighbor.fields.totalTimeHackatimeHours || 0),
         totalTimeStopwatchHours: Math.round(neighbor.fields.totalTimeStopwatchHours || 0),
-        fullName: neighbor.fields["Full Name"] || null,
+        fullName: slackHandle,
         grantedHours: neighbor.fields.GrantedHours || 0,
         weightedGrantsContribution: neighbor.fields.weightedGrantsContribution || 0,
         startDate: stayInfo.startDate,

@@ -64,9 +64,8 @@ export default async function handler(req, res) {
         fields: [
           "Pfp (from slackNeighbor)",
           "Slack ID (from slackNeighbor)",
-          "Full Name (from slackNeighbor)",
+          "Slack Handle (from slackNeighbor)",
           "githubUsername",
-          "Full Name",
           "airport",
           "isIRL"
         ],
@@ -77,15 +76,16 @@ export default async function handler(req, res) {
     const neighborsWithHours = await Promise.all(
       neighborRecords.map(async (record) => {
         const slackId = record.fields["Slack ID (from slackNeighbor)"];
+        const slackHandle = record.fields["Slack Handle (from slackNeighbor)"] || null;
         const weeklyHours = slackId ? await getHackatimeData(slackId) : 0;
 
         return {
           id: record.id,
           pfp: record.fields["Pfp (from slackNeighbor)"]?.[0]?.url || null,
           slackId: slackId || null,
-          slackFullName: record.fields["Full Name (from slackNeighbor)"] || null,
+          slackFullName: slackHandle,
           githubUsername: record.fields.githubUsername || null,
-          fullName: record.fields["Full Name"] || null,
+          fullName: slackHandle?.[0] || null,
           airport: record.fields.airport,
           isIRL: record.fields.isIRL || false,
           weeklyHours: Math.round(weeklyHours * 10) / 10

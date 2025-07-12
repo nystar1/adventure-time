@@ -11,11 +11,15 @@ export default async function handler(req, res) {
 
   const { slackId } = req.query;
 
-  if (!slackId) {
-    return res.status(400).json({ message: "Missing slackId" });
+  let validateSlackId = str.length >= 9 && str.length <= 14 && (() => { for (let i = str.length, c; i--;) { c = str.charCodeAt(i); if ((c < 48 || c > 122) || (c > 57 && c < 65) || (c > 90 && c < 97)) return false; } return true; })();
+
+  if (!slackId || !validateSlackId(slackId)) {
+    return res.status(400).json({ message: "Invalid or missing slackId" });
   }
 
   try {
+    let filterFormula = `AND({Slack ID (from slackNeighbor)} = '${slackId}', {totalTimeHackatimeHours} >= 1.0)`;
+
     // Get the neighbor's details
     const neighborRecords = await base("Neighbors")
       .select({
@@ -23,10 +27,12 @@ export default async function handler(req, res) {
           "Pfp (from slackNeighbor)",
           "Slack ID (from slackNeighbor)",
           "Slack Handle (from slackNeighbor)",
+          "Full Name (from slackNeighbor)",
           "githubUsername",
           "totalTimeCombinedHours",
           "totalTimeHackatimeHours",
           "totalTimeStopwatchHours",
+          "Full Name",
           "Apps",
           "GrantedHours",
           "weightedGrantsContribution",
@@ -34,7 +40,7 @@ export default async function handler(req, res) {
           "approvedFlightStipend",
           "country"
         ],
-        filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
+        filterByFormula: filterFormula,
         maxRecords: 1
       })
       .firstPage();
@@ -133,7 +139,7 @@ export default async function handler(req, res) {
         totalTimeCombinedHours: Math.round(neighbor.fields.totalTimeCombinedHours || 0),
         totalTimeHackatimeHours: Math.round(neighbor.fields.totalTimeHackatimeHours || 0),
         totalTimeStopwatchHours: Math.round(neighbor.fields.totalTimeStopwatchHours || 0),
-        fullName: slackHandle,
+        fullName: neighbor.fields["Full Name"] || null,
         grantedHours: neighbor.fields.GrantedHours || 0,
         weightedGrantsContribution: neighbor.fields.weightedGrantsContribution || 0,
         startDate: stayInfo.startDate,

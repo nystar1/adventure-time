@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       stipendAmount = country === "US" ? 500 : 750;
     }
 
-    const slackHandle = record.fields["Slack Handle (from slackNeighbor)"] || null
+    const slackHandle = neighbor.fields["Slack Handle (from slackNeighbor)"] || null
 
     // Prepare the response
     const response = {

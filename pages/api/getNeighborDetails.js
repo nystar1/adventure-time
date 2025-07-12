@@ -23,6 +23,7 @@ export default async function handler(req, res) {
           "Pfp (from slackNeighbor)",
           "Slack ID (from slackNeighbor)",
           "Full Name (from slackNeighbor)",
+          "Slack Handle (from slackNeighbor)",
           "githubUsername",
           "totalTimeCombinedHours",
           "totalTimeHackatimeHours",

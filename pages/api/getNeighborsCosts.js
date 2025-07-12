@@ -18,8 +18,7 @@ export default async function handler(req, res) {
       .select({
         fields: [
           "Slack ID (from slackNeighbor)",
-          "Full Name (from slackNeighbor)",
-          "Full Name",
+          "Slack Handle (from slackNeighbor)",
           "totalTimeHackatimeHours",
           "weightedGrantsContribution",
           "stay",
@@ -130,11 +129,13 @@ export default async function handler(req, res) {
           stipendAmount = country === "US" ? 500 : 750;
         }
 
+        const slackHandle = record.fields["Slack Handle (from slackNeighbor)"] || null;
+
         return {
           id: record.id,
           slackId: record.fields["Slack ID (from slackNeighbor)"] || null,
-          slackFullName: record.fields["Full Name (from slackNeighbor)"] || null,
-          fullName: record.fields["Full Name"] || null,
+          slackFullName: slackHandle,
+          fullName: slackHandle?.[0] || null,
           totalTimeHackatimeHours: Math.round(record.fields.totalTimeHackatimeHours || 0),
           weightedGrantsContribution: record.fields.weightedGrantsContribution || 0,
           rentCost: rentCost,

@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       .select({
         fields: [
           "Slack ID (from slackNeighbor)",
-          "Full Name (from slackNeighbor)",
+          "Slack Handle (from slackNeighbor)",
           "githubUsername",
           "Pfp (from slackNeighbor)"
         ],
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     const neighbors = neighborDetails.map(neighbor => ({
       id: neighbor.id,
       slackId: neighbor.fields["Slack ID (from slackNeighbor)"] || null,
-      fullName: neighbor.fields["Full Name (from slackNeighbor)"] || null,
+      fullName: neighbor.fields["Slack Handle (from slackNeighbor)"]?.[0] || null,
       githubUsername: neighbor.fields.githubUsername || null,
       pfp: neighbor.fields["Pfp (from slackNeighbor)"]?.[0]?.url || null
     }));

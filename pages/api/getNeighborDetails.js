@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(

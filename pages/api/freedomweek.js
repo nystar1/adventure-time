@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 export const config = {
@@ -29,6 +30,8 @@ export default async function handler(req, res) {
     const body = await getJsonBody(req);
     const { action, emails, recordId, videoUrl, email } = body;
 
+    const clean_email = email;
+
     if (!action) {
       return res.status(400).json({ message: "Missing action type" });
     }
@@ -53,7 +56,7 @@ export default async function handler(req, res) {
       try {
         const created = await base("Freedom week videos").create({
           ID: nextId,
-          Emails: `${emails[0]}; ${emails[1]}`,
+          Emails: `${cleanString(emails[0])}; ${cleanString(emails[1])}`,
         });
         return res.status(200).json({
           success: true,
@@ -71,7 +74,7 @@ export default async function handler(req, res) {
       }
       try {
         const found = await base("Freedom week videos")
-          .select({ filterByFormula: `FIND('${email}', {Emails}) > 0`, maxRecords: 1 })
+          .select({ filterByFormula: `FIND('${clean_email}', {Emails}) > 0`, maxRecords: 1 })
           .firstPage();
         if (found.length === 0) {
           return res.status(404).json({ message: "Record not found for this email" });

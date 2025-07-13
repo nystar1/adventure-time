@@ -19,7 +19,7 @@ export default async function handler(req, res) {
     // Lookup neighbor by Slack ID
     const neighborRecords = await base("Neighbors")
       .select({
-        fields: ["Slack ID (from slackNeighbor)", "Full Name (from slackNeighbor)", "githubUsername"],
+        fields: ["Slack ID (from slackNeighbor)", "Slack Handle (from slackNeighbor)", "githubUsername"],
         filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
         maxRecords: 1
       })
@@ -28,7 +28,6 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: "Neighbor not found" });
     }
     const neighbor = neighborRecords[0];
-    const neighborId = neighbor.id;
     const githubUsername = neighbor.fields.githubUsername || null;
 
     // Lookup app by name (case-insensitive, trimmed)

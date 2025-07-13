@@ -27,14 +27,14 @@ export default async function handler(req, res) {
 
     const neighbors = await base("neighbors")
       .select({
-        fields: ["email", "Full Name"]
+        fields: ["email", "Slack Handle (from slackNeighbor)"]
       })
       .all();
 
     const emailToNameMap = {};
     neighbors.forEach(neighbor => {
       const email = neighbor.fields["email"];
-      const fullName = neighbor.fields["Full Name"];
+      const fullName = neighbor.fields["Slack Handle (from slackNeighbor)"]?.[0] ?? "";
       if (email && fullName && typeof email === 'string') {
         const cleanEmail = email.trim().toLowerCase();
         emailToNameMap[cleanEmail] = fullName;

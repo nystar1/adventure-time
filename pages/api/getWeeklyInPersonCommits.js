@@ -76,8 +76,8 @@ const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los
       // Store in our map
       commitsByUser[slackId] = {
         slackId,
-        fullName: neighbor.fields["Full Name (from slackNeighbor)"] || null,
-        slackFullName: neighbor.fields["Full Name (from slackNeighbor)"] || null,
+        fullName: neighbor.fields["Slack Handle (from slackNeighbor)"] || null,
+        slackFullName: neighbor.fields["Slack Handle (from slackNeighbor)"] || null,
         pfp: neighbor.fields["Pfp (from slackNeighbor)"]?.[0]?.url || null,
         commits,
         totalMinutes

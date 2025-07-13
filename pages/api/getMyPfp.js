@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({
@@ -12,7 +13,7 @@ export default async function handler(req, res) {
   try {
     // Find the neighbor with this reviewerToken
     const records = await base('Neighbors').select({
-      filterByFormula: `{token} = '${token}'`,
+      filterByFormula: `{token} = '${cleanString(token)}'`,
       maxRecords: 1
     }).firstPage();
     if (!records.length) {

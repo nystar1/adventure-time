@@ -1,4 +1,5 @@
 import Airtable from "airtable";
+import { cleanString } from "../../lib/airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
   process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID
@@ -6,20 +7,22 @@ const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FI
 
 async function getUnloggedTimeForApp(slackId, appName) {
   // 1. Get all hackatimeProjects for this user/app
+  const cleanedSlackId = cleanString(slackId);
+  const cleanedAppName = cleanString(appName);
   const projects = await base("hackatimeProjects")
     .select({
-      filterByFormula: `AND({slackId} = '${slackId}', {Name (from Apps)} = '${appName}')`
+      filterByFormula: `AND({slackId} = '${cleanedSlackId}', {Name (from Apps)} = '${cleanedAppName}')`
     })
     .all();
 
   // 2. For each project, fetch Hackatime spans
   let allSpans = [];
   for (const project of projects) {
-    const projectName = project.fields.name;
-    if (!projectName) continue;
+    const cleanedProjectName = cleanString(project.fields.name);
+    if (!cleanedProjectName) continue;
     try {
       const response = await fetch(
-        `https://hackatime.hackclub.com/api/v1/users/${slackId}/heartbeats/spans?project=${encodeURIComponent(projectName)}`,
+        `https://hackatime.hackclub.com/api/v1/users/${cleanedSlackId}/heartbeats/spans?project=${encodeURIComponent(cleanedProjectName)}`,
         { headers: { 'Accept': 'application/json' } }
       );
       if (response.ok) {
@@ -38,24 +41,25 @@ async function getUnloggedTimeForApp(slackId, appName) {
   // 3. Fetch all posts for this user/app
   const posts = await base("Posts")
     .select({
-      filterByFormula: `AND({slackId} = '${slackId}', {appName} = '${appName}')`
+      filterByFormula: `AND({slackId} = '${cleanedSlackId}', {appName} = '${cleanedAppName}')`
     })
     .all();
   // 4. Fetch all ships for this user/app
   // Need to get user's email
   const neighbors = await base("Neighbors")
     .select({
-      filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
+      filterByFormula: `{Slack ID (from slackNeighbor)} = '${cleanedSlackId}'`,
       maxRecords: 1,
     })
     .all();
   let ships = [];
   if (neighbors.length > 0) {
     const email = neighbors[0].fields.Email || neighbors[0].fields.email;
+    const cleanedEmail = cleanString(email);
     if (email) {
       ships = await base("ShipLog")
         .select({
-          filterByFormula: `AND({Email} = '${email}', {App Name} = '${appName}')`
+          filterByFormula: `AND({Email} = '${cleanedEmail}', {App Name} = '${cleanedAppName}')`
         })
         .all();
     }
@@ -104,9 +108,10 @@ export default async function handler(req, res) {
       // Multi-app mode: get all apps for this user
       // 1. Lookup neighbor by Slack ID
       console.log("Multi-app mode: Looking up neighbor for slackId:", slackId);
+      const cleanedSlackId = cleanString(slackId);
       const neighborRecords = await base("Neighbors")
         .select({
-          filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
+          filterByFormula: `{Slack ID (from slackNeighbor)} = '${cleanedSlackId}'`,
           maxRecords: 1
         })
         .firstPage();

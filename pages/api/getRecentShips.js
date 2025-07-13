@@ -1,12 +1,9 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
   process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID
 );
-
-function escapeAirtableString(str) {
-  return String(str).replace(/'/g, "\\'");
-}
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -32,7 +29,7 @@ export default async function handler(req, res) {
 
     // Batch fetch neighbors by email
     if (emails.length > 0) {
-      const emailFilters = emails.map(email => `{email} = '${escapeAirtableString(email)}'`);
+      const emailFilters = emails.map(email => `{email} = '${cleanString(email)}'`);
       if (emailFilters.length > 0) {
         const filter = `OR(${emailFilters.join(",")})`;
         console.log("getRecentShips: neighbor filterByFormula", filter);
@@ -57,7 +54,7 @@ export default async function handler(req, res) {
     // Batch fetch canonical app names from Apps table
     let appNameToCanonical = {};
     if (appNames.length > 0) {
-      const appNameFilters = appNames.map(name => `{Name} = '${escapeAirtableString(name)}'`);
+      const appNameFilters = appNames.map(name => `{Name} = '${cleanString(name)}'`);
       if (appNameFilters.length > 0) {
         const filter = `OR(${appNameFilters.join(",")})`;
         console.log("getRecentShips: app filterByFormula", filter);

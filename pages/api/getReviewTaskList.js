@@ -1,4 +1,5 @@
 import Airtable from "airtable";
+import { cleanString } from "../../lib/airtable";
 
 const base = new Airtable({
   apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED,
@@ -16,9 +17,10 @@ export default async function handler(req, res) {
   }
 
   try {
+    const cleanedToken = cleanString(token)
     const records = await base("ReviewAssignment")
       .select({
-        filterByFormula: `{reviewerToken} = '${token}'`,
+        filterByFormula: `{reviewerToken} = '${cleanedToken}'`,
         sort: [{ field: "createdAt", direction: "desc" }]
       })
       .all();

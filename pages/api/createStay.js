@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({
@@ -25,7 +26,7 @@ export default async function handler(req, res) {
     
     // First, find the neighbor with this token
     const neighborRecords = await base('Neighbors').select({
-      filterByFormula: `{token} = '${token}'`,
+      filterByFormula: `{token} = '${cleanString(token)}'`,
       maxRecords: 1
     }).firstPage();
     
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
 
     // Check if there's already a stay with this SlackId
     const existingStayRecords = await base('stay').select({
-      filterByFormula: `{SlackId} = '${slackId}'`,
+      filterByFormula: `{SlackId} = '${cleanString(slackId)}'`,
       maxRecords: 1
     }).firstPage();
     

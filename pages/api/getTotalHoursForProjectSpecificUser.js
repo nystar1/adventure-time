@@ -1,4 +1,5 @@
 import Airtable from "airtable";
+import { cleanString } from "../../lib/airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
   process.env.NEIGHBORHOOD_AIRTABLE_BASE_ID
@@ -17,20 +18,22 @@ export default async function handler(req, res) {
 
   try {
     // Find all hackatimeProjects for this app and user
+    const cleanedSlackId = cleanString(slackId);
+    const cleanedAppName = cleanString(appName);
     const projects = await base("hackatimeProjects")
       .select({
-        filterByFormula: `AND({slackId} = '${slackId}', {Name (from Apps)} = '${appName}')`
+        filterByFormula: `AND({slackId} = '${cleanedSlackId}', {Name (from Apps)} = '${cleanedAppName}')`
       })
       .all();
 
     // For each project, fetch Hackatime API and sum durations
     let totalDuration = 0;
     for (const project of projects) {
-      const projectName = project.fields.name;
-      if (!projectName) continue;
+      const cleanedProjectName = cleanString(project.fields.name);
+      if (!cleanedProjectName) continue;
       try {
         const response = await fetch(
-          `https://hackatime.hackclub.com/api/v1/users/${slackId}/heartbeats/spans?project=${encodeURIComponent(projectName)}`,
+          `https://hackatime.hackclub.com/api/v1/users/${cleanedSlackId}/heartbeats/spans?project=${encodeURIComponent(cleanedProjectName)}`,
           { headers: { 'Accept': 'application/json' } }
         );
         if (response.ok) {

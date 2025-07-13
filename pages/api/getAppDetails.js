@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     const neighborRecords = await base("Neighbors")
       .select({
         fields: ["Slack ID (from slackNeighbor)"],
-        filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
+        filterByFormula: `{Slack ID (from slackNeighbor)} = '${cleanString(slackId)}'`,
         maxRecords: 1
       })
       .firstPage();
@@ -45,7 +46,7 @@ export default async function handler(req, res) {
           "YSWS Project Submission",
           "playableURL"
         ],
-        filterByFormula: `{Name} = '${appNameLower}'`,
+        filterByFormula: `{Name} = '${cleanString(appNameLower)}'`,
         maxRecords: 1
       })
       .firstPage();

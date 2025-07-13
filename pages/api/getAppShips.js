@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
     // 1. Look up the neighbor's email by Slack ID
     const neighbors = await base("Neighbors")
       .select({
-        filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
+        filterByFormula: `{Slack ID (from slackNeighbor)} = '${cleanString(slackId)}'`,
         maxRecords: 1,
       })
       .all();
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
     // 2. Query ShipLog by email and githubLink
     const ships = await base("ShipLog")
       .select({
-        filterByFormula: `AND({Email} = '${email}', {Github Link} = '${githubLink.replace(/'/g, "\\'")}')`
+        filterByFormula: `AND({Email} = '${cleanString(email)}', {Github Link} = '${githubLink.replace(/'/g, "\\'")}')`
       })
       .all();
 

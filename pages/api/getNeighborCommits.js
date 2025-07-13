@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
 
     // Build filter formula
     let filterFormula = `AND(
-      {slackId} = '${slackId}',
+      {slackId} = '${cleanString(slackId)}',
       IS_AFTER({commitTime}, '${startDateStr}'),
       IS_BEFORE({commitTime}, '${endDateStr}')
     )`;
@@ -37,8 +38,8 @@ export default async function handler(req, res) {
     // Add appName filter if provided
     if (appName) {
       filterFormula = `AND(
-        {slackId} = '${slackId}',
-        {appName} = '${appName}',
+        {slackId} = '${cleanString(slackId)}',
+        {appName} = '${cleanString(appName)}',
         IS_AFTER({commitTime}, '${startDateStr}'),
         IS_BEFORE({commitTime}, '${endDateStr}')
       )`;

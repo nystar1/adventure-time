@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
@@ -18,7 +19,7 @@ export default async function handler(req, res) {
   try {
     const posts = await base("Posts")
       .select({
-        filterByFormula: `AND({slackId} = '${slackId}', {appName} = '${appName}')`
+        filterByFormula: `AND({slackId} = '${cleanString(slackId)}', {appName} = '${cleanString(appName)}')`
       })
       .all();
 

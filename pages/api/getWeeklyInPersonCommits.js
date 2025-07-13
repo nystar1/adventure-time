@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({
@@ -41,7 +42,7 @@ const now = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Los
       // Fetch commits for this user within the date range
       const commitRecords = await base('Commits').select({
         filterByFormula: `AND(
-          {slackId} = '${slackId}',
+          {slackId} = '${cleanString(slackId)}',
           IS_AFTER({commitTime}, '${startDateStr}'),
           IS_BEFORE({commitTime}, '${endDateStr}')
         )`,

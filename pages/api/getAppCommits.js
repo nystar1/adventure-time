@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({
@@ -14,8 +15,8 @@ export default async function handler(req, res) {
 
     // Build filter formula for specific user and app (no time restrictions)
     const filterFormula = `AND(
-      {slackId} = '${slackId}',
-      {appName} = '${appName}'
+      {slackId} = '${cleanString(slackId)}',
+      {appName} = '${cleanString(appName)}'
     )`;
 
     const commitRecords = await base('Commits').select({

@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     const findNeighbor = async (email) => {
       const records = await base("Neighbors")
         .select({
-          filterByFormula: `{Email} = '${email}'`,
+          filterByFormula: `{Email} = '${cleanString(email)}'`,
           maxRecords: 1
         })
         .firstPage();

@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.NEIGHBORHOOD_AIRTABLE_API_KEY_FIXED }).base(
@@ -20,7 +21,7 @@ export default async function handler(req, res) {
     const neighborRecords = await base("Neighbors")
       .select({
         fields: ["Slack ID (from slackNeighbor)", "Slack Handle (from slackNeighbor)", "githubUsername"],
-        filterByFormula: `{Slack ID (from slackNeighbor)} = '${slackId}'`,
+        filterByFormula: `{Slack ID (from slackNeighbor)} = '${cleanString(slackId)}'`,
         maxRecords: 1
       })
       .firstPage();
@@ -35,7 +36,7 @@ export default async function handler(req, res) {
     const appRecords = await base("Apps")
       .select({
         fields: ["Name"],
-        filterByFormula: `{Name} = '${appNameLower}'`,
+        filterByFormula: `{Name} = '${appNameLower}'`, // no need
         maxRecords: 1
       })
       .firstPage();
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
     // Query hackatimeProjects where slackId matches and the app name matches
     const projects = await base("hackatimeProjects")
       .select({
-        filterByFormula: `AND({slackId} = '${slackId}', {Name (from Apps)} = '${appName}')`
+        filterByFormula: `AND({slackId} = '${cleanString(slackId)}', {Name (from Apps)} = '${cleanString(appName)}')`
       })
       .all();
 

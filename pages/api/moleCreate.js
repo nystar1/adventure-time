@@ -1,3 +1,4 @@
+import { cleanString } from "../../lib/airtable";
 import Airtable from "airtable";
 
 const base = new Airtable({ apiKey: process.env.Mole_Airtable_Token || process.env.MOLE_AIRTABLE_TOKEN }).base("appJoAAl0y0Pr2itM");
@@ -16,7 +17,7 @@ export default async function handler(req, res) {
     // Check if a record with the same play_url and repo_url exists and is not complete
     const existingRecords = await base("checks")
       .select({
-        filterByFormula: `AND({play_url} = '${appLink}', {repo_url} = '${githubUrl}')`,
+        filterByFormula: `AND({play_url} = '${cleanString(appLink)}', {repo_url} = '${cleanString(githubUrl)}')`,
         maxRecords: 5
       })
       .all();

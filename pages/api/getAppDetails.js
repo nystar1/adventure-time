@@ -36,8 +36,11 @@ export default async function handler(req, res) {
       return res.status(404).json({ message: "Neighbor not found" });
     }
 
+    const neighborId = neighborRecords[0].id;
+    const cleanedAppName = cleanString(appId);
+
     // Get the app details by Name (case-insensitive, trimmed)
-    const appRecords = await base("Apps")
+    let appRecords = await base("Apps")
       .select({
         fields: [
           "Name",
@@ -49,38 +52,70 @@ export default async function handler(req, res) {
           "YSWS Project Submission",
           "playableURL"
         ],
-        filterByFormula: `{Name} = '${appId}'`,
+        filterByFormula: `LOWER({Name}) = '${cleanedAppName.toLowerCase()}'`,
         maxRecords: 1
       })
       .firstPage();
 
     if (appRecords.length === 0) {
-      return res.status(404).json({ message: "App not found" });
+      // Try a more flexible search if exact match fails
+      const flexibleAppRecords = await base("Apps")
+        .select({
+          fields: [
+            "Name",
+            "Github Link",
+            "App Link",
+            "Description",
+            "Neighbors",
+            "Icon",
+            "YSWS Project Submission",
+            "playableURL"
+          ],
+          filterByFormula: `SEARCH('${cleanedAppName.toLowerCase()}', LOWER({Name}))`,
+          maxRecords: 1
+        })
+        .firstPage();
+
+      if (flexibleAppRecords.length === 0) {
+        return res.status(404).json({ message: "App not found" });
+      }
+      
+      appRecords = flexibleAppRecords;
     }
 
     const app = appRecords[0];
 
     // Get details of all neighbors in the app
     const neighborIds = app.fields.Neighbors || [];
-    const neighborDetails = await base("Neighbors")
-      .select({
-        fields: [
-          "Slack ID (from slackNeighbor)",
-          "Slack Handle (from slackNeighbor)",
-          "githubUsername",
-          "Pfp (from slackNeighbor)"
-        ],
-        filterByFormula: `OR(${neighborIds.map(id => `RECORD_ID() = '${id}'`).join(',')})`
-      })
-      .all();
+    let neighbors = [];
+    
+    if (neighborIds.length > 0) {
+      try {
+        const neighborDetails = await base("Neighbors")
+          .select({
+            fields: [
+              "Slack ID (from slackNeighbor)",
+              "Slack Handle (from slackNeighbor)",
+              "githubUsername",
+              "Pfp (from slackNeighbor)"
+            ],
+            filterByFormula: `OR(${neighborIds.map(id => `RECORD_ID() = '${id}'`).join(',')})`
+          })
+          .all();
 
-    const neighbors = neighborDetails.map(neighbor => ({
-      id: neighbor.id,
-      slackId: neighbor.fields["Slack ID (from slackNeighbor)"] || null,
-      fullName: neighbor.fields["Slack Handle (from slackNeighbor)"]?.[0] || null,
-      githubUsername: neighbor.fields.githubUsername || null,
-      pfp: neighbor.fields["Pfp (from slackNeighbor)"]?.[0]?.url || null
-    }));
+        neighbors = neighborDetails.map(neighbor => ({
+          id: neighbor.id,
+          slackId: neighbor.fields["Slack ID (from slackNeighbor)"] || null,
+          fullName: neighbor.fields["Slack Handle (from slackNeighbor)"]?.[0] || null,
+          githubUsername: neighbor.fields.githubUsername || null,
+          pfp: neighbor.fields["Pfp (from slackNeighbor)"]?.[0]?.url || null
+        }));
+      } catch (neighborError) {
+        console.error("Error fetching neighbor details:", neighborError);
+        // Continue with empty neighbors array rather than failing completely
+        neighbors = [];
+      }
+    }
 
     // Prepare the response
     const response = {
